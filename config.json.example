@@ -1,0 +1,23 @@
+{
+    "aid_list": [{
+        "aid": 123,
+        "time": 30
+    }, {
+        "aid": 1223,
+        "time": 60
+    }],
+    "database": {
+        "type": "csv",
+        "csv": {
+            "path": "./data/"
+        },
+        "mysql": {
+            "host": "",
+            "user": "",
+            "password": "",
+            "port": "",
+            "database": "",
+            "charset": "utf8mb4_unicode_ci"
+        }
+    }
+}
