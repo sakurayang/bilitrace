@@ -1,6 +1,5 @@
 const readCSV = require('csvtojson');
 const fs = require('fs');
-const chartXkcd = require('chart.xkcd');
 
 const express = require('express');
 const app = express();
@@ -10,6 +9,15 @@ const port = 8084;
 
 const config = require("./config.json");
 const path = config.database.csv.path;
+
+function sleep(time, callback) {
+    var stop = new Date().getTime();
+    while (new Date().getTime() < stop + time) {
+        ;
+    }
+    callback();
+}
+
 
 router.param('aid', (req, res, next, aid) => {
     fs.stat(path + `${aid}.csv`, (err, stat) => {
@@ -37,14 +45,14 @@ app.get('/:aid', (req, res) => {
         .then(json => {
             json.forEach(_data => {
                 //console.log(_data);
-                data.view.push(_data['再生']);
-                data.coin.push(_data['硬币']);
-                data.danma.push(_data['弹幕']);
-                data.favourite.push(_data['收藏']);
-                data.reply.push(_data['回复']);
-                data.share.push(_data['分享']);
-                data.heart_like.push(_data['点赞']);
-                data.update_date.push((new Date(Number(_data['更新时间']))).toLocaleTimeString("en-US", {
+                data.view.push(_data['view']);
+                data.coin.push(_data['coin']);
+                data.danma.push(_data['danma']);
+                data.favourite.push(_data['favourite']);
+                data.reply.push(_data['reply']);
+                data.share.push(_data['share']);
+                data.heart_like.push(_data['heart_like']);
+                data.update_date.push((new Date(Number(_data['update_date']))).toLocaleTimeString("en-US", {
                     hour12: 0
                 }));
             });
