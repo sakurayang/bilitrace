@@ -78,7 +78,7 @@ async function getInfo(type, id, day = 3) {
 function trace(type, id, time, day = 3) {
     let type = type.toUpperCase;
     if (type == "VIDEO") {
-        schedule.scheduleJob(String(id), `*/${time} * * * *`, () => {
+        schedule.scheduleJob(String(id), time, () => {
             getInfo("video", id).then(res => {
                 writeData(res);
             }).catch(err => {
@@ -88,7 +88,7 @@ function trace(type, id, time, day = 3) {
             });
         });
     } else {
-        schedule.scheduleJob(String(id), `* * */${time} * *`, () => {
+        schedule.scheduleJob(String(id), time, () => {
             getInfo("rank", id, day).then(res => {
                 writeData(res);
             }).catch(err => {
@@ -107,7 +107,7 @@ function trace(type, id, time, day = 3) {
  * @returns {Void}
  */
 function writeData(type, data) {
-    let type = type.toUpperCase();
+    type = type.toUpperCase();
     /*
     Load modules when their really need for tiny the memory,
     because the time for do a switch...case.. is less then load module.
@@ -168,7 +168,10 @@ function writeData(type, data) {
  * @returns {Promise<Array<JSON>>}
  */
 async function readData(type, id, limit) {
-    let type = type.toUpperCase();
+    type = type.toUpperCase();
+    let start = Number(limit.split('-')[0]);
+    let end = Number(limit.split('-')[1]);
+    console.log(start, end);
     switch (database_type) {
         case "CSV":
             const readCSV = require('csvtojson');
@@ -179,7 +182,14 @@ async function readData(type, id, limit) {
                     output: "json"
                 }).fromFile(path)
                 .then(json => {
-                    for (let i = 0; i < limit - 1; i++) data.push(json[i]);
+                    for (let i = start; i < end + 1; i++) {
+                        //console.log(i);
+                        if (json[i]) {
+                            data.push(json[i])
+                        } else {
+                            break;
+                        }
+                    };
                     return data;
                 });
             break;
@@ -188,11 +198,10 @@ async function readData(type, id, limit) {
             const conn = mysql.createConnection(config.database.mysql);
             let table = type == "RANK" ? `rank_${id}` : Number(id);
             let select_options = type == "RANK" ? {} : {
-                aid: data.aid
+                aid: id
             };
-            let data = [];
             return conn.table(table)
-                .limit(limit)
+                .limit(end - start + 1)
                 .select(select_options)
                 .then(res => {
                     return res

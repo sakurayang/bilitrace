@@ -29,7 +29,8 @@
     }],
     "tid_list": [{
         "tid": 24,
-        "time": "* * */3 * *"
+        "time": "* * */3 * *",
+        "day": 3
     }],
     "database": {
         "type": "csv",
@@ -56,7 +57,10 @@
 - `aid_list` &lt;Array&gt;: 需要追踪的视频av号数组
   - `aid` &lt;Number|String&gt;: 需要追踪的视频av号，建议以`Number`类型储存
   - `time` &lt;Cron Job String&gt;: 追踪的时间间隔，是一个Cron Job格式的字符串。`*/1 * * * *`表示每隔一分钟记录一次追踪数据。总请求数不建议超过一分钟一次
-- `tid_list` &lt;Array&gt;: 同上
+- `tid_list` &lt;Array&gt;: 需要追踪的分区变好
+  - `aid` &lt;Number|String&gt;: 需要追踪的视频av号，建议以`Number`类型储存
+  - `time` &lt;Cron Job String&gt;: 追踪的时间间隔，是一个Cron Job格式的字符串。`*/1 * * * *`表示每隔一分钟记录一次追踪数据。总请求数不建议超过一天一次
+  - `day` &lt;Number&gt;: 排行榜获取范围（B站那个3日7日什么的），默认与缺省为3
 - `database` &lt;JSON Object&gt;: 数据库类型与信息
 - `type` &lt;String&gt;: 数据记录类型，CSV或MySQL
 - `csv: path` &lt;String&gt;: CSV的储存目录

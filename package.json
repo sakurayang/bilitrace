@@ -1,7 +1,7 @@
 {
-  "name": "bilihot",
+  "name": "bilitrace",
   "version": "1.0.0",
-  "description": "no",
+  "description": "null",
   "main": "index.js",
   "dependencies": {
     "chart.xkcd": "^1.0.10",
@@ -17,6 +17,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
-  "license": "MIT"
+  "author": "Gerard",
+  "license": "MIT",
+  "repository": {
+    "type": "Github",
+    "url": "https://github.com/sakurayang/bilitrace"
+  }
 }
