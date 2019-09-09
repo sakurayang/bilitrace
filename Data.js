@@ -6,80 +6,105 @@ const config = require("./config.json");
 const database_type = config.database.type.toUpperCase();
 const root_path = String(config.database.csv.path);
 
-function sleep(time, callback) {
-    var stop = new Date().getTime();
-    while (new Date().getTime() < stop + time) {
-        ;
-    }
-    callback();
-}
 
 /**
  * @param {String} type
  * @param {Number} id
+ * @param {Number} day
+ * @returns {Promise<JSON|Array<JSON>>}
  */
-
-function getInfo(type, id, day = 3) {
+async function getInfo(type, id, day = 3) {
     console.log(type, id);
     switch (type.toUpperCase()) {
         default:
         case "VIDEO":
-            return request.get(`https://api.bilibili.com/x/web-interface/view?aid=${String(id)}`);
+            return request.get(`https://api.bilibili.com/x/web-interface/view?aid=${String(id)}`)
+                .then(res => {
+                    let data = JSON.parse(res).data;
+                    let stat = data.stat;
+                    return {
+                        aid: data.aid,
+                        title: data.title,
+                        view: stat.view,
+                        coin: stat.coin,
+                        danma: stat.danmaku,
+                        favorite: stat.favorite,
+                        reply: stat.reply,
+                        share: stat.share,
+                        heart_like: stat.like,
+                        pubdate: data.pubdate,
+                        update_date: Date.now()
+                    };
+                }).catch(err => {
+                    throw err;
+                });
             break;
         case "RANK":
-            return request.get(`https://api.bilibili.com/x/web-interface/ranking/region?rid=${rid}&day=${day}&original=1`);
+            return request.get(`https://api.bilibili.com/x/web-interface/ranking/region?rid=${id}&day=${day}&original=1`)
+                .then(res => {
+                    //console.log(res);
+                    let data = JSON.parse(res).data;
+                    let date = Date.now();
+                    let db_data = [];
+                    data.forEach((video, index) => {
+                        db_data.push({
+                            aid: video.aid,
+                            title: video.title,
+                            tid: id,
+                            tname: video.typename,
+                            author_name: video.author,
+                            author_mid: video.mid,
+                            rank: index,
+                            point: video.pts,
+                            date: (new Date(video.create)).getTime(),
+                            update_date: date
+                        });
+                    });
+                    return db_data;
+                }).catch(err => {
+                    throw err;
+                });
             break;
     }
 }
-
-function traceVideo(type, id, time, day = 3) {
+/**
+ * 
+ * @param {String} type 
+ * @param {Number|String} id 
+ * @param {String} time 
+ * @param {Number} day 
+ * @returns {Void} 
+ */
+function trace(type, id, time, day = 3) {
     let type = type.toUpperCase;
-    type == "VIDEO" ?
+    if (type == "VIDEO") {
         schedule.scheduleJob(String(id), `*/${time} * * * *`, () => {
             getInfo("video", id).then(res => {
-                let data = JSON.parse(res).data;
-                let stat = data.stat;
-                let db_data = {
-                    aid: data.aid,
-                    title: data.title,
-                    view: stat.view,
-                    coin: stat.coin,
-                    danma: stat.danmaku,
-                    favorite: stat.favorite,
-                    reply: stat.reply,
-                    share: stat.share,
-                    heart_like: stat.like,
-                    pubdate: data.pubdate,
-                    update_date: Date.now()
-                };
-                writeData(db_data);
-            }).catch(err => console.log(err))
-        }) :
+                writeData(res);
+            }).catch(err => {
+                console.log(err);
+                consile.log("\nCancle Next Trace");
+                schedule.scheduledJobs[id].cancelNext();
+            });
+        });
+    } else {
         schedule.scheduleJob(String(id), `* * */${time} * *`, () => {
             getInfo("rank", id, day).then(res => {
-                let data = JSON.parse(res).data;
-                let date = Date.now();
-                data.forEach((video, index) => {
-                    let db_data = {
-                        aid: video.aid,
-                        title: video.title,
-                        tid: id,
-                        tname: video.typename,
-                        author_name: author,
-                        author_mid: mid,
-                        rank: index,
-                        point: video.pts,
-                        date: date,
-                        update_date: Date.now()
-                    }
-                });
-            })
-        })
+                writeData(res);
+            }).catch(err => {
+                console.log(err);
+                consile.log("\nCancle Next Trace");
+                schedule.scheduledJobs[id].cancelNext();
+            });
+        });
+    }
+    return null;
 }
 
 /**
  * @param {String} type
  * @param {JSON[]} data - it should be a JSON object
+ * @returns {Void}
  */
 function writeData(type, data) {
     let type = type.toUpperCase();
@@ -95,7 +120,7 @@ function writeData(type, data) {
         case "CSV":
             const createCsvWriter = require('csv-writer').createObjectCsvWriter;
             const fs = require('fs');
-            let path = type == "RANK" ? `${root_path}${data.tname}.csv` : `${root_path}${data.aid}.csv`;
+            let path = type == "RANK" ? require("path").normalize(`${root_path}rank_${data.tid}.csv`) : require("path").normalize(`${root_path}${data.aid}.csv`);
 
             let write = (createCsvWriter, options) => {
                 const csvWriter = createCsvWriter(options);
@@ -118,27 +143,67 @@ function writeData(type, data) {
         case "MYSQL":
             const mysql = require('node-mysql-promise');
             const conn = mysql.createConnection(config.database.mysql);
-            let table = type == "RANK" ? `rank_${data.tid}` : video;
+            let table = type == "RANK" ? `rank_${data.tid}` : data.aid;
             let table_value = type == "RANK" ?
                 "(aid bigint primary key,title text,view bigint,coin bigint,danma bigint,favorite bigint,reply bigint,share bigint,heart_like bigint,pubdate text,update_date text)" :
                 "(aid int primary key, title text, tid int, tname text, rank int,date text,update_date text)";
             conn.query(`CREATE TABLE ${table} VALUE ${table_value}`);
             conn.table(table)
-                .thenAdd(data, {
-                    update_date: data.update_date
-                }, false)
-                .then(() => false)
+                .addAll(data)
                 .catch(err => {
                     throw err
-                });
-            conn.close();
+                }).finally(() => conn.close());
         default:
             throw new Error("Type not suppot \n Suppot type: Mysql, CSV")
             break;
     }
+    return null;
 }
 
-function readData(type, id) {
+/**
+ * 
+ * @param {String} type csv OR mysql
+ * @param {String|Number} id 
+ * @param {Number} limit 
+ * @returns {Promise<Array<JSON>>}
+ */
+async function readData(type, id, limit) {
+    let type = type.toUpperCase();
+    switch (database_type) {
+        case "CSV":
+            const readCSV = require('csvtojson');
+            let path = type == "RANK" ? require("path").normalize(`${root_path}rank_${id}.csv`) : require("path").normalize(`${root_path}${id}.csv`);
+            let data = [];
+            return readCSV({
+                    noheader: 0,
+                    output: "json"
+                }).fromFile(path)
+                .then(json => {
+                    for (let i = 0; i < limit - 1; i++) data.push(json[i]);
+                    return data;
+                });
+            break;
+        case "MYSQL":
+            const mysql = require('node-mysql-promise');
+            const conn = mysql.createConnection(config.database.mysql);
+            let table = type == "RANK" ? `rank_${id}` : Number(id);
+            let select_options = type == "RANK" ? {} : {
+                aid: data.aid
+            };
+            let data = [];
+            return conn.table(table)
+                .limit(limit)
+                .select(select_options)
+                .then(res => {
+                    return res
+                })
+                .catch(err => {
+                    throw err
+                }).finally(() => conn.close());
+        default:
+            throw new Error("Type not suppot \n Suppot type: Mysql, CSV")
+            break;
+    }
 
 }
 
@@ -147,8 +212,7 @@ module.exports = {
     get: getInfo,
     write: writeData,
     read: readData,
-    traceVideo: traceVideo,
-    traceRank: traceRank
+    trace: trace
 }
 
 /*
