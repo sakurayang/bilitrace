@@ -1,12 +1,14 @@
 {
+    "video_enable": 0,
+    "rank_enable": 0,
     "aid_list": [{
         "aid": 123,
-        "time": "*/30 * * * *"
+        "time": "*/3 * * * *"
     }, {
         "aid": 1223,
-        "time": "*/60 * * * *"
+        "time": "*/3 * * * *"
     }],
-    "tid_list":[{
+    "tid_list": [{
         "tid": 24,
         "time": "* * */3 * *",
         "day": 3

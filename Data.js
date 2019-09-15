@@ -76,7 +76,7 @@ async function getInfo(type, id, day = 3) {
  * @returns {Void} 
  */
 function trace(type, id, time, day = 3) {
-    let type = type.toUpperCase;
+    type = type.toUpperCase;
     if (type == "VIDEO") {
         schedule.scheduleJob(String(id), time, () => {
             getInfo("video", id).then(res => {

@@ -15,20 +15,20 @@ function sleep(time, callback) {
     callback;
 }
 
-aid_list.forEach(video => {
+config.video_enable ? aid_list.forEach(video => {
     //为了不在同一分钟内执行大量请求导致被ban
     trace.trace("video", video.aid, video.time);
     console.log(`Schedule Job ${video.aid} has created`);
     sleep(800, () => {
-        continue
+        return null;
     });
-});
+}) : false;
 
-tid_list.forEach(rank => {
+config.rank_enable ? tid_list.forEach(rank => {
     let day = rank.day ? rank.day : 3;
     trace.trace("rank", rank.tid, rank.time, day);
     console.log(`Schedule Job ${rank.aid} has created`);
     sleep(800, () => {
-        continue
+        return null
     });
-});
+}) : false;
