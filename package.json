@@ -13,6 +13,9 @@
     "request": "^2.88.0",
     "request-promise-native": "^1.0.7"
   },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/@sakurayang"
+  },
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
