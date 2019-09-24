@@ -59,8 +59,9 @@ async function getVideoInfo(aid) {
     console.log(`已用时间：${(Date.now()-start_time)/1000/60}`);
     //console.log(aid);
     let result = await request.get(encodeURI(`https://api.bilibili.com/x/web-interface/view?aid=${String(aid)}`));
-    console.log(result);
+    //console.log(result);
     let stat = (JSON.parse(result).code == 0) ? JSON.parse(result).data.stat : {
+        aid: aid,
         view: 0,
         coin: 0,
         danma: 0,
@@ -70,8 +71,8 @@ async function getVideoInfo(aid) {
         share: 0,
         like: 0
     };
-
-    debugger;
+    //data.write("rank",stat)
+    //debugger;
     return {
         view: stat.view,
         coin: stat.coin,
@@ -83,8 +84,8 @@ async function getVideoInfo(aid) {
     };
 }
 
-async function getAllStat(list) {
 
+async function getAllStat(list) {
     let all_stat = {
         view: 0,
         coin: 0,
@@ -115,9 +116,11 @@ async function getAllStat(list) {
     return all_stat;
 }
 
+
+
 module.exports = {
     get: getAllStat
 }
 
-getAllStat(cate_list).then(res => console.log(res)).catch(err => console.log(err));
+//getAllStat(cate_list).then(res => console.log(res)).catch(err => console.log(err));
 //getAidList(28, 20190913, 20190920).then(res => console.log(res));
