@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 node_modules
 config.json
 data
@@ -5,3 +6,12 @@ data
 rank.js
 .jsbeautifyrc
 .next/
+=======
+node_modules
+config.json
+data
+*.csv
+rank.js
+.next/
+.jsbeautifyrc
+>>>>>>> temp
