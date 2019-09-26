@@ -29,7 +29,7 @@ function parseData(data) {
         parsed_data.reply.push(value.reply);
         parsed_data.share.push(value.share);
         parsed_data.heart_like.push(value.heart_like);
-        parsed_data.update_date.push((new Date(Number(value['update_date']))).toLocaleTimeString("en-US", {
+        parsed_data.updata_date.push((new Date(Number(value['update_date']))).toLocaleTimeString("en-US", {
             hour12: 0
         }));
     });

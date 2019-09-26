@@ -33,7 +33,7 @@ async function getInfo(type, id, day = 3) {
                         share: stat.share,
                         heart_like: stat.like,
                         pubdate: data.pubdate,
-                        update_date: Date.now()
+                        updata_date: Date.now()
                     };
                 }).catch(err => {
                     throw err;
@@ -76,11 +76,11 @@ async function getInfo(type, id, day = 3) {
  * @returns {Void} 
  */
 function trace(type, id, time, day = 3) {
-    type = type.toUpperCase;
+    type = String(type).toUpperCase();
     if (type == "VIDEO") {
         schedule.scheduleJob(String(id), time, () => {
-            getInfo("video", id).then(res => {
-                writeData(res);
+            getInfo(type, id).then(res => {
+                writeData(type, res);
             }).catch(err => {
                 console.log(err);
                 consile.log("\nCancle Next Trace");
@@ -89,8 +89,8 @@ function trace(type, id, time, day = 3) {
         });
     } else {
         schedule.scheduleJob(String(id), time, () => {
-            getInfo("rank", id, day).then(res => {
-                writeData(res);
+            getInfo(type, id, day).then(res => {
+                writeData(type, res);
             }).catch(err => {
                 console.log(err);
                 consile.log("\nCancle Next Trace");
@@ -118,25 +118,25 @@ function writeData(type, data) {
     console.log(data);
     switch (database_type) {
         case "CSV":
-            const createCsvWriter = require('csv-writer').createObjectCsvWriter;
             const fs = require('fs');
             let path = type == "RANK" ? require("path").normalize(`${root_path}rank_${data.tid}.csv`) : require("path").normalize(`${root_path}${data.aid}.csv`);
 
-            let write = (createCsvWriter, options) => {
-                const csvWriter = createCsvWriter(options);
-                csvWriter.writeRecords([data]).then(() => console.log("Done"));
+            let write = (data, header = 0) => {
+                let decode_data = `${data.aid},"${data.title}",${data.coin},${data.view},${data.danma},${data.favorite},${data.heart_like},${data.reply},${data.share},${data.pubdate},${data.updata_date}`;
+                fs.writeFile(path,
+                    header ? "aid,title,coin,view,danma,favorite,heart_like,reply,share,pubdate,update_date\n" + decode_data : decode_data, {
+                        flag: "a+"
+                    },
+                    function(err) {
+                        console.log(err)
+                    });
             }
 
-            const options = {
-                path: path
-            };
-            fs.stat(path, function (err, stat) {
+            fs.stat(path, function(err, stat) {
                 if (err) {
-                    options.append = false;
-                    write(createCsvWriter, options)
+                    write(data, 1)
                 } else {
-                    options.append = true;
-                    write(createCsvWriter, options);
+                    write(data, 0);
                 }
             });
             break;
