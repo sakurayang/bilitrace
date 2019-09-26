@@ -19,7 +19,7 @@ function parseData(data) {
         reply: [],
         share: [],
         heart_like: [],
-        update_date: []
+        updata_date: []
     }
     data.forEach(value => {
         parsed_data.view.push(value.view);
@@ -59,7 +59,7 @@ app.get(['/video/:aid/', '/video/:aid/:limit'], (req, res) => {
             let options = {
                 xLable: "time",
                 data: {
-                    labels: parsed_data.update_date,
+                    labels: parsed_data.updata_date,
                     datasets: [{
                         label: 'view',
                         data: parsed_data.view
