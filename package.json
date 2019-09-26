@@ -5,7 +5,6 @@
     "main": "index.js",
     "dependencies": {
         "chart.xkcd": "^1.0.10",
-        "csv-writer": "^1.5.0",
         "csvtojson": "^2.0.10",
         "express": "^4.17.1",
         "node-mysql-promise": "0.0.7",
