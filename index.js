@@ -29,6 +29,6 @@ config.rank_enable ? tid_list.forEach(rank => {
     trace.trace("rank", rank.tid, rank.time, day);
     console.log(`Schedule Job ${rank.aid} has created`);
     sleep(800, () => {
-        return null
+        return null;
     });
 }) : false;

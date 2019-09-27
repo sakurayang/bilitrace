@@ -57,7 +57,7 @@ async function getInfo(type, id, day = 3) {
                             rank: index,
                             point: video.pts,
                             date: (new Date(video.create)).getTime(),
-                            update_date: date
+                            updata_date: date
                         });
                     });
                     return db_data;
@@ -124,7 +124,7 @@ function writeData(type, data) {
             let write = (data, header = 0) => {
                 let decode_data = `${data.aid},"${data.title}",${data.coin},${data.view},${data.danma},${data.favorite},${data.heart_like},${data.reply},${data.share},${data.pubdate},${data.updata_date}`;
                 fs.writeFile(path,
-                    header ? "aid,title,coin,view,danma,favorite,heart_like,reply,share,pubdate,update_date\n" + decode_data : decode_data, {
+                    header ? "aid,title,coin,view,danma,favorite,heart_like,reply,share,pubdate,updata_date\n" + decode_data : decode_data, {
                         flag: "a+"
                     },
                     function(err) {
@@ -145,8 +145,8 @@ function writeData(type, data) {
             const conn = mysql.createConnection(config.database.mysql);
             let table = type == "RANK" ? `rank_${data.tid}` : data.aid;
             let table_value = type == "RANK" ?
-                "(aid bigint primary key,title text,view bigint,coin bigint,danma bigint,favorite bigint,reply bigint,share bigint,heart_like bigint,pubdate text,update_date text)" :
-                "(aid int primary key, title text, tid int, tname text, rank int,date text,update_date text)";
+                "(aid bigint primary key,title text,view bigint,coin bigint,danma bigint,favorite bigint,reply bigint,share bigint,heart_like bigint,pubdate text,updata_date text)" :
+                "(aid int primary key, title text, tid int, tname text, rank int,date text,updata_date text)";
             conn.query(`CREATE TABLE ${table} VALUE ${table_value}`);
             conn.table(table)
                 .addAll(data)
@@ -226,5 +226,5 @@ module.exports = {
 
 /*
 test data:
-{aid:123,title:"123",views:123,coin:123,danma:123,favorite:123,reply:123,share:123,heart_like:123,pubdate:1566764551469,update_date:1566764551469}
+{aid:123,title:"123",views:123,coin:123,danma:123,favorite:123,reply:123,share:123,heart_like:123,pubdate:1566764551469,updata_date:1566764551469}
 */
