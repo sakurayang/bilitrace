@@ -1,52 +1,40 @@
-const createError = require('http-errors');
-const express = require('express');
-const path = require('path');
+const fs = require("fs");
 
-const logger = require('morgan');
+const koa = require('koa');
+const router = require('koa-router')();
+const app = new koa();
 
-const index = require('./routes/index');
-const add = require('./routes/add');
-const remove = require('./routes/remove');
-const show = require('./routes/show');
-const get = require('./routes/get');
-const update = require('./routes/update');
+const config = require("./config.json");
 
-const app = express();
+function addMapping(router, mapping) {
+    for (var url in mapping) {
+        if (url.startsWith('GET ')) {
+            var path = url.substring(4);
+            router.get(path, mapping[url]);
+            console.log(`register URL mapping: GET ${path}`);
+        } else if (url.startsWith('POST ')) {
+            var path = url.substring(5);
+            router.post(path, mapping[url]);
+            console.log(`register URL mapping: POST ${path}`);
+        } else {
+            console.log(`invalid URL: ${url}`);
+        }
+    }
+}
 
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'pug');
+function addControllers(router) {
+    var files = fs.readdirSync(__dirname + '/router');
+    var js_files = files.filter((f) => {
+        return f.endsWith('.js');
+    });
 
-app.use(logger('dev'));
-app.use(express.json());
-app.use(express.urlencoded({
-    extended: false
-}));
+    for (var f of js_files) {
+        console.log(`process controller: ${f}...`);
+        let mapping = require(__dirname + '/router/' + f);
+        addMapping(router, mapping);
+    }
+}
 
-app.use(express.static(path.join(__dirname, 'public')));
+addControllers(router);
 
-app.use('/', index);
-app.use('/add', add);
-app.use('/remove', remove);
-app.use('/show', show);
-app.use('/get', get);
-app.use('/update', update);
-
-
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-    next(createError(404));
-});
-
-// error handler
-app.use(function(err, req, res, next) {
-    // set locals, only providing error in development
-    res.locals.message = err.message;
-    res.locals.error = req.app.get('env') === 'development' ? err : {};
-
-    // render the error page
-    res.status(err.status || 500);
-    res.render('error');
-});
-
-module.exports = app;
+config.web.enable ? app.listen(config.web.port, config.web.host) : false;

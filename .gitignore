@@ -5,6 +5,7 @@ data
 rank.js
 .jsbeautifyrc
 *.code-workspace
+.vscode/
 
 # Logs
 logs
