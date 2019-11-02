@@ -1,5 +1,6 @@
 const request = require('request-promise-native');
 const schedule = require('node-schedule');
+const fs = require("fs");
 
 const config = require("../config.json");
 
@@ -51,6 +52,7 @@ class CreateRankScheduleJob extends CreateScheduleJob {
         this.rank_data = new RankData(this.job_id);
         this.job = schedule.scheduleJob(this.job_time, async () => {
             let info = await this.spider.getInfo();
+            //console.log(info);
             this.rank_data.write(info);
         });
         return this;
@@ -66,6 +68,7 @@ class CreateVideoScheduleJob extends CreateScheduleJob {
         this.video_data = new VideoData(this.job_id);
         this.job = schedule.scheduleJob(this.job_time, async () => {
             let info = await this.spider.getInfo();
+            //console.log(info);
             this.video_data.write(info);
         });
         return this;
@@ -97,11 +100,12 @@ class Data {
      */
     write(write_data) {
         if (DATABASE_TYPE == "csv") {
-            const fs = require('fs');
-            fs.writeFile(this.data_path, write_data, {
+            let db_data = JSON.stringify(write_data).replace(/[\[|\]|\{|\}]/ig, "");
+            console.log(db_data);
+            fs.writeFile(this.data_path, db_data + "\n", {
                 flag: "a+",
                 encoding: "utf8"
-            }, err => console.log(err));
+            }, err => { });
         } else if (DATABASE_TYPE == "mysql") {
             const mysql = require('node-mysql-promise');
             const conn = mysql.createConnection(this.data_path);
@@ -109,8 +113,17 @@ class Data {
                 `rank_${this.data_id}` :
                 `video_${this.data_id}`;
             let table_value = this.data_type == "rank" ?
-                "(aid bigint primary key,title text,view bigint,coin bigint,danma bigint,favorite bigint,reply bigint,share bigint,heart_like bigint,pubdate text,update_date text)" :
-                "(aid int primary key, title text, tid int, tname text, rank int,date text,update_date text)";
+                "(aid bigint primary key, \
+                title text, tid int, \
+                tname text, author_name text, \
+                author_mid bigint, pank int, \
+                point bigint,pubdate bigint)" :
+                "(aid int primary key, \
+                title text, view bigint, \
+                coin bigint, danma bigint, \
+                favorite bigint, reply bigint, \
+                share bigint, heart_like bigint, \
+                pubdate text, update_date text)"
             conn.query(`CREATE TABLE ${table} VALUE ${table_value}`);
             conn.table(table)
                 .addAll(write_data)
@@ -128,9 +141,10 @@ class Data {
      * @returns {Promise<Array<JSON>>}
      */
     async read(limit) {
-        let start = Number(limit.split('-')[0]);
-        let end = Number(limit.split('-')[1]);
+        let start = /[0-9]-[0-9]/.test(limit) ? Number(limit.split('-')[0]) : 0;
+        let end = /[0-9]-[0-9]/.test(limit) ? Number(limit.split('-')[1]) : 250;
         console.log(start, end);
+
         if (DATABASE_TYPE == "csv") {
             const readCSV = require('csvtojson');
             let l_path = this.data_path;
@@ -182,21 +196,28 @@ class RankData extends Data {
         return this;
     }
     write(data) {
-        let write_data = data in Object && data != null ? data : {};
+        //console.log(data);
+        let write_data = typeof (data) == "object" && data != null ? data : {};
         if (DATABASE_TYPE == "csv") {
-            let head = "aid,view,coin,danma,favorite,reply,share,heart_like,point\n";
+            let head = "aid,title,tid,tname,author_name,author_mid,point,pubdate\n";
             fs.stat(this.data_path, err => {
                 if (err) fs.writeFile(this.data_path, head, {
                     encoding: "utf8"
-                }, err => {});
+                }, err => { });
             });
-            super.write([from.substr(4, 2),
-            rank_info.rank_offset,
-            rank_info.id,
-            `"${rank_info.title}"`,
-            rank_info.pubdate,
-            `"${rank_info.tag.toString()}`
-            ]);
+            for (let rank_info of write_data) {
+                super.write([
+                    rank_info.id,
+                    `"${rank_info.title}"`,
+                    rank_info.tid,
+                    rank_info.tname,
+                    rank_info.author_name,
+                    rank_info.author_mid,
+                    rank_info.rank,
+                    rank_info.point,
+                    rank_info.pubdate
+                ]);
+            }
         } else if (DATABASE_TYPE == "mysql") {
             super.write(write_data);
         } else {
@@ -219,9 +240,10 @@ class VideoData extends Data {
         return this;
     }
     write(data) {
-        let write_data = data in Object && data != null ? data : [];
+        // console.log(data);
+        let write_data = typeof (data) == "object" && data != null ? data : [];
         if (DATABASE_TYPE == "csv") {
-            let head = "aid,view,coin,danma,favorite,reply,share,heart_like,point\n";
+            let head = "aid,title,view,coin,danma,favorite,reply,share,heart_like,pubdate,update_date\n";
             fs.stat(this.data_path, err => {
                 if (err) fs.writeFile(this.data_path, head, {
                     encoding: "utf8"
@@ -229,7 +251,19 @@ class VideoData extends Data {
                     throw err
                 });
             });
-            super.write(write_data.toString() + "\n");
+            super.write([
+                write_data.aid,
+                write_data.title,
+                write_data.view,
+                write_data.coin,
+                write_data.danma,
+                write_data.favorite,
+                write_data.reply,
+                write_data.share,
+                write_data.heart_like,
+                write_data.pubdate,
+                write_data.update_date
+            ]);
         } else if (DATABASE_TYPE == "mysql") {
             super.write(write_data);
         } else {
@@ -306,7 +340,6 @@ class RankSpider extends Spider {
     async getInfo() {
         let raw_data = await request.get(this.spider_url);
         raw_data = JSON.parse(raw_data).data;
-        let now_date = Date.now();
         let db_data = [];
         //console.log(data);
         for (let rank = 0, len = raw_data.length; rank < len; rank++) {
@@ -320,8 +353,7 @@ class RankSpider extends Spider {
                 author_mid: video.mid,
                 rank: rank + 1,
                 point: video.pts,
-                date: (new Date(video.create)).getTime(),
-                update_date: now_date
+                pubdate: video.create,
             });
         }
         return db_data;
@@ -336,3 +368,5 @@ module.exports = {
     VideoSpider,
     RankSpider
 }
+
+new CreateVideoScheduleJob(1700001, "*/5 * * * *");
