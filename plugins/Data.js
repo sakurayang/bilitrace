@@ -31,6 +31,14 @@ async function sleep(time) {
 }
 
 class CreateScheduleJob {
+    /**
+     * 
+     * @param {String} type 
+     * @param {Number} id 
+     * @param {String} time 
+     * @param {Number} day 
+     * @returns {Object}
+     */
     constructor(type, id, time = "*/5 * * * *", day = 3) {
         this.job_type = String(type) || "rank";
         this.job_id = String(id);
@@ -43,14 +51,20 @@ class CreateScheduleJob {
     }
 }
 
-class CreateRankScheduleJob extends CreateScheduleJob {
-    constructor(id, time = "* * */5 * *", day = 3) {
+class RankScheduleJob extends CreateScheduleJob {
+    /**
+     * 
+     * @param {Number} id 
+     * @param {String} time 
+     * @param {Number} day 
+     */
+    constructor(id, time = "* * */3 * *", day = 3) {
         super("rank", id, time, day);
         this.job_type = "rank";
         this.job_id = id;
         this.spider = new RankSpider(this.job_id);
         this.rank_data = new RankData(this.job_id);
-        this.job = schedule.scheduleJob(this.job_time, async () => {
+        this.job = schedule.scheduleJob(String(id), this.job_time, async () => {
             let info = await this.spider.getInfo();
             //console.log(info);
             this.rank_data.write(info);
@@ -59,14 +73,19 @@ class CreateRankScheduleJob extends CreateScheduleJob {
     }
 }
 
-class CreateVideoScheduleJob extends CreateScheduleJob {
+class VideoScheduleJob extends CreateScheduleJob {
+    /**
+     * 
+     * @param {Number} id 
+     * @param {String} time 
+     */
     constructor(id, time) {
         super("video", id, time);
         this.job_id = id;
         this.job_type = "video";
         this.spider = new VideoSpider(this.job_id);
         this.video_data = new VideoData(this.job_id);
-        this.job = schedule.scheduleJob(this.job_time, async () => {
+        this.job = schedule.scheduleJob(String(id), this.job_time, async () => {
             let info = await this.spider.getInfo();
             //console.log(info);
             this.video_data.write(info);
@@ -105,7 +124,7 @@ class Data {
             fs.writeFile(this.data_path, db_data + "\n", {
                 flag: "a+",
                 encoding: "utf8"
-            }, err => { });
+            }, err => {});
         } else if (DATABASE_TYPE == "mysql") {
             const mysql = require('node-mysql-promise');
             const conn = mysql.createConnection(this.data_path);
@@ -137,31 +156,17 @@ class Data {
 
 
     /** 
-     * @param {Number} limit 
      * @returns {Promise<Array<JSON>>}
      */
-    async read(limit) {
-        let start = /[0-9]-[0-9]/.test(limit) ? Number(limit.split('-')[0]) : 0;
-        let end = /[0-9]-[0-9]/.test(limit) ? Number(limit.split('-')[1]) : 250;
-        console.log(start, end);
-
+    async read() {
         if (DATABASE_TYPE == "csv") {
             const readCSV = require('csvtojson');
             let l_path = this.data_path;
-            let l_data = [];
             let read_data = await readCSV({
                 noheader: 0,
                 output: "json"
             }).fromFile(l_path);
-            for (let i = start; i < end + 1; i++) {
-                //console.log(i);
-                if (read_data[i]) {
-                    l_data.push(read_data[i])
-                } else {
-                    if (read_data[i + 1]) continue;
-                    break;
-                }
-            }
+            return read_data;
         } else if (DATABASE_TYPE == "mysql") {
             const mysql = require('node-mysql-promise');
             const conn = mysql.createConnection(this.data_path);
@@ -183,6 +188,10 @@ class Data {
 }
 
 class RankData extends Data {
+    /**
+     * 
+     * @param {Number} id 
+     */
     constructor(id) {
         let Path = require("path");
         let l_path = DATABASE_TYPE == "csv" ?
@@ -203,7 +212,7 @@ class RankData extends Data {
             fs.stat(this.data_path, err => {
                 if (err) fs.writeFile(this.data_path, head, {
                     encoding: "utf8"
-                }, err => { });
+                }, err => {});
             });
             for (let rank_info of write_data) {
                 super.write([
@@ -239,18 +248,21 @@ class VideoData extends Data {
         this.data_path = l_path;
         return this;
     }
-    write(data) {
+    async write(data) {
         // console.log(data);
         let write_data = typeof (data) == "object" && data != null ? data : [];
         if (DATABASE_TYPE == "csv") {
             let head = "aid,title,view,coin,danma,favorite,reply,share,heart_like,pubdate,update_date\n";
-            fs.stat(this.data_path, err => {
-                if (err) fs.writeFile(this.data_path, head, {
+            try {
+                await fs.statSync(this.data_path)
+            } catch (error) {
+                fs.writeFile(this.data_path, head, {
                     encoding: "utf8"
                 }, err => {
-                    throw err
+                    console.log(err);
                 });
-            });
+            }
+
             super.write([
                 write_data.aid,
                 write_data.title,
@@ -284,8 +296,8 @@ class Spider {
         this.spider_url = this.spider_type == "rank" ?
             `https://api.bilibili.com/x/web-interface/ranking/region?rid=${this.spider_id}&day=${this.spider_day}` :
             this.spider_type == "video" ?
-                `https://api.bilibili.com/x/web-interface/view?aid=${this.spider_id}` :
-                false;
+            `https://api.bilibili.com/x/web-interface/view?aid=${this.spider_id}` :
+            false;
         return this;
     }
 }
@@ -361,12 +373,10 @@ class RankSpider extends Spider {
 }
 
 module.exports = {
-    CreateRankScheduleJob,
-    CreateVideoScheduleJob,
+    RankScheduleJob,
+    VideoScheduleJob,
     RankData,
     VideoData,
     VideoSpider,
     RankSpider
 }
-
-new CreateVideoScheduleJob(1700001, "*/5 * * * *");

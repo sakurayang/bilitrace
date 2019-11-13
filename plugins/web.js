@@ -1,4 +1,4 @@
-const trace = require('./Data');
+const {Data} = require('./Data');
 const fs = require('fs');
 
 const express = require('express');
@@ -49,11 +49,11 @@ router.param('limit', (req, res, next) => {
 
 app.get(['/video/:aid/', '/video/:aid/:limit'], (req, res) => {
     let aid = req.params.aid;
-    let limit = req.params.limit ? req.params.limit : '0-50';
-
+    let limit = req.params.limit ? req.params.limit : '0-250';
+    let video_data = new Data(aid);
     //let limit = 50;
     console.log(path + `${aid}.csv`);
-    trace.read('video', aid, limit)
+    Data.read('video', aid, limit)
         .then(data => {
             let parsed_data = parseData(data);
             let options = {

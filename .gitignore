@@ -6,6 +6,8 @@ rank.js
 .jsbeautifyrc
 *.code-workspace
 .vscode/
+star.js
+*.db
 
 # Logs
 logs
