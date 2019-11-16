@@ -6,16 +6,21 @@
 
 - Node.JS &gt;= 10.13.0
 - MySQL 或 MariaDB (选择数据储存方式为Mysql时)
+- sqlite3
 
 ## 安装
 
-首先将`config.json.example`复制并重命名为`config.json`，然后修改其中的配置项，关于配置项的细节请参考[配置项说明](#配置项说明)
+```sh
+user@user:/bilitrace$ mv config.json.example config.json
+#修改配置项
+user@user:/bilitrace$ npm install
+user@user:/bilitrace$ screen npm start
+#或者
+#user@user:/bilitrace$ node app.js
+```
 
-然后`npm install`
-
-随后请用`screen`或`forever`来运行
-
-若你选择的数据储存类型为CSV，则视频为`aid.csv`，排行榜为`分区名称.csv`
+推荐用`screen`或`forever`来保持运行
+若你选择的数据储存类型为CSV，则视频为`video_aid.csv`，排行榜为`rank_rid.csv`
 
 ## 配置项说明
 
@@ -72,87 +77,12 @@
 
 ## api
 
-**粗体**为必填项 *斜体*为可选项
+**粗体**或`< >`内为必填项 *斜体*或`[ ]`内为可选项
 
-```js
-let track = require('bilitrack');
-track.get(type, id, day?)
-```
+- `/add/<aid>/[time]`: 增加一个trace，time的格式为cron job格式
+- `/update/<aid>/[time]`: 更改已有trace，不存在时会报错
+- `/remove/<aid>`: 删除一个已有trace，不存在时会报错
+- `/show/<aid>`: 数据展示，不存在时会报错
 
-获取数据
+目前只做了视频类型的数据增删改查
 
-**type** &lt;String&gt;: 获取类型 video 或 rank
-
-**id** &lt;Number|String&gt;: 当类型为video时，此项为aid。当类型为rank时，此项为分区id
-
-*day* &lt;Number|String&gt;: 为rank指定范围，默认为3。当类型为rank时，此项才有效。
-
-```js
-trace.write(type, data)
-```
-
-写入数据
-
-**type** &lt;String&gt;: 数据类型 video 或 rank
-
-**data** &lt;JSON&gt;: 数据
-
-数据格式：
-
-```js
-//视频数据
-{
-    aid: 1700001,          //视频AV号
-    title: "Hop",          //视频标题
-    view: 1265423215,      //再生
-    coin: 1515664465,      //硬币
-    danma: 2523,           //弹幕
-    favorite: 125562152,   //收藏
-    reply: 5626,           //回复
-    share: 525632,         //分享
-    heart_like: 65426556,  //点赞
-    pubdate: 454562515,    //视频发布日期(UNIX)
-    update_date: 415214514 //数据更新日期(UNIX)
-}
-
-//排行榜单体数据
-{
-    aid: 1700001,             //视频AV号
-    title: "Hop",             //视频标题
-    tid: 21,                  //分区id
-    tname: "MV",              //分区名称
-    author_name: "冰封的虾子", //作者名
-    author_mid: 1234124,      //作者mid
-    rank: 1,                  //排名
-    point: 1231244,           //分数
-    date: 1231234124,         //排行榜日期
-    update_date: 123412512    //数据更新日期
-}
-```
-
-```js
-trace.read(type, id, limit)
-```
-读取数据，返回为一个由JSON组成的limit长度的数组。JSON格式同写入格式。
-
-**type** &lt;String&gt;: 类型 video 或 rank
-
-**id** &lt;Number|String&gt;: 当类型为video时，此项为aid。当类型为rank时，此项为分区id
-
-*limit* &lt;Number&gt;: 获取数量限制，默认为10
-
-```js
-trace.trace(type, id, time, day)
-```
-
-开始追踪
-
-**type** &lt;String&gt;: 类型 video 或 rank
-
-**id** &lt;Number|String&gt;: 当类型为video时，此项为aid。当类型为rank时，此项为分区id
-
-**time** &lt;Cron Job String&gt;: 追踪的时间间隔，是一个Cron Job格式的字符串。`*/1 * * * *`表示每隔一分钟记录一次追踪数据。总请求数不建议超过一分钟一次
-
-*day* &lt;Number|String&gt;: 为rank指定范围，默认为3。当类型为rank时，此项才有效。
-
-## 
