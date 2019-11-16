@@ -74,12 +74,19 @@ async function showVideo(ctx, id) {
             snap: true
         },
         dataZoom: [{
+            xAxisIndex: [0],
             type: 'slider',
             start: parsed_data.length > 51 ? (1 - (50 / (parsed_data.length - 1))) * 100 : 0,
             end: 100
         }, {
+            xAxisIndex: [0],
             type: 'inside',
             start: parsed_data.length > 51 ? (1 - (50 / (parsed_data.length - 1))) * 100 : 0,
+            end: 100
+        }, {
+            yAxisIndex: [0],
+            type: 'slider',
+            start: 0,
             end: 100
         }],
         xAxis: {

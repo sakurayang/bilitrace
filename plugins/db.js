@@ -18,6 +18,27 @@ async function SELECT(table, id) {
 /**
  * 
  * @param {String} table 
+ * @param {Number} limit
+ * @param {Number} offset
+ */
+async function SELECTALL(table, limit = 0, offset = 0) {
+    if (!table ||
+        typeof (table) != "string")
+        throw new Error("Error Paramas");
+    let result = [];
+    let count = await DB.prepare(`SELECT count(*) FROM ${table}`).get()['count(*)'];
+    //console.log(count);
+    limit = limit == 0 ? count : limit;
+    for (let i = 0; i < Math.abs(limit - offset); i++) {
+        if (i > count - offset - 1) break;
+        result.push(await DB.prepare(`SELECT * FROM ${table} LIMIT 1 OFFSET ${offset+i}`).get());
+    }
+    return result;
+}
+
+/**
+ * 
+ * @param {String} table 
  * @param {JSON} value
  * @param {Number} value.id
  * @param {String} value.time 
@@ -66,5 +87,6 @@ module.exports = {
     SELECT: SELECT,
     INSERT: INSERT,
     DELETE: DELETE,
-    UPDATE: UPDATE
+    UPDATE: UPDATE,
+    SELECTALL: SELECTALL
 }
