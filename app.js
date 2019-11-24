@@ -31,27 +31,59 @@ async function init() {
     let video = await db.SELECTALL("video");
     let rank = await db.SELECTALL("rank");
     for (const video_item of video) {
-        add(app.context, video_item.id, video_item.time);
+        await setTimeout(() => {}, 100);
+        add({
+            body: ""
+        }, video_item.id, "video", video_item.time);
     }
     for (const rank_item of rank) {
-        add(app.context, rank_item.id, rank_item.time);
+        await setTimeout(() => {}, 100);
+        add({
+            body: ""
+        }, rank_item.id, "rank", rank_item.time);
     }
     console.log("success");
 }
 
 app.use(serve('./static'));
 
-app.use(_.get('/', ctx => ctx.body = "Please visit api diretly"));
+app.use(_.get('/', ctx => ctx.body = "please visit api diretly"));
 
-app.use(_.get('/show/:aid', async (ctx, aid) => await show(ctx, Number(aid))));
+//<-------------[START show route]------------->
+app.use(_.get('/show', async ctx => {
+    let query = ctx.query;
+    let id = query.id;
+    let type = query.type || "video";
+    await show(ctx, id, type)
+}));
+//<-------------[END show route]------------->
 
-app.use(_.get('/add/:aid/', async (ctx, aid) => await add(ctx, Number(aid))));
+//<-------------[START add route]------------->
+app.use(_.get('/add', async ctx => {
+    let query = ctx.query;
+    let id = query.id;
+    let type = query.type || "video";
+    let time = query.time || "*/5 * * * *";
+    await add(ctx, id, type, time)
+}));
+//<-------------[END add route]------------->
 
-app.use(_.get('/add/:aid/:time', async (ctx, aid, time) => await add(ctx, Number(aid), time)));
+//<-------------[START add route]------------->
+app.use(_.get('/remove', async ctx => {
+    let query = ctx.query;
+    let id = query.id;
+    let type = query.type || "video";
+    await remove(ctx, id, type)
+}));
+//<-------------[END add route]------------->
 
-app.use(_.get('/remove/:aid', async (ctx, aid) => await remove(ctx, aid)));
+app.use(_.get('/update', async ctx => {
+    let query = ctx.query;
+    let id = query.id;
+    let type = query.type || "video";
+    let time = query.time || "*/5 * * * *";
+    await update(ctx, id, type, time)
+}))
 
-app.use(_.get('/update/:aid/:time', async (ctx, aid, time) => await update(ctx, aid, time)))
-
-app.listen(8699, init());
-//config.web.enable ? app.listen(config.web.port, config.web.host) : false;
+//app.listen(8699, init());
+config.web.enable ? app.listen(config.web.port, config.web.host, init()) : false;
