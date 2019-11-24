@@ -4,10 +4,10 @@ const fs = require("fs");
 
 const config = require("../config.json");
 
-//const DATABASE_TYPE = config.database.type.toLowerCase();
-const DATABASE_TYPE = "csv";
-//const DATABASE_PATH = DATABASE_TYPE == "csv" ? config.database.csv.path : config.database.mysql;
-const DATABASE_PATH = "./data/";
+const DATABASE_TYPE = config.database.type.toLowerCase();
+//const DATABASE_TYPE = "csv";
+const DATABASE_PATH = DATABASE_TYPE == "csv" ? config.database.csv.path : config.database.mysql;
+//const DATABASE_PATH = "./data/";
 
 const TID = {
     28: "原创音乐",
@@ -19,6 +19,8 @@ const TID = {
     193: "MV",
     194: "电音"
 }
+
+var prev_job_time = Date.now();
 
 async function sleep(time) {
     //debugger;
@@ -65,6 +67,11 @@ class RankScheduleJob extends CreateScheduleJob {
         this.spider = new RankSpider(this.job_id);
         this.rank_data = new RankData(this.job_id);
         this.job = schedule.scheduleJob(String(id), this.job_time, async () => {
+            let l_prev_job_time = prev_job_time;
+            while (Date.now() - l_prev_job_time < 1000) {
+                ;
+            }
+            prev_job_time = Date.now();
             let info = await this.spider.getInfo();
             //console.log(info);
             this.rank_data.write(info);
@@ -72,7 +79,6 @@ class RankScheduleJob extends CreateScheduleJob {
         return this;
     }
 }
-
 class VideoScheduleJob extends CreateScheduleJob {
     /**
      * 
@@ -86,6 +92,10 @@ class VideoScheduleJob extends CreateScheduleJob {
         this.spider = new VideoSpider(this.job_id);
         this.video_data = new VideoData(this.job_id);
         this.job = schedule.scheduleJob(String(id), this.job_time, async () => {
+            while (Date.now() - prev_job_time < 100) {
+                ;
+            }
+            prev_job_time = Date.now();
             let info = await this.spider.getInfo();
             //console.log(info);
             this.video_data.write(info);
@@ -206,7 +216,7 @@ class RankData extends Data {
     }
     write(data) {
         //console.log(data);
-        let write_data = typeof (data) == "object" && data != null ? data : {};
+        let write_data = typeof(data) == "object" && data != null ? data : {};
         if (DATABASE_TYPE == "csv") {
             let head = "aid,title,tid,tname,author_name,author_mid,point,pubdate\n";
             fs.stat(this.data_path, err => {
@@ -250,7 +260,7 @@ class VideoData extends Data {
     }
     async write(data) {
         // console.log(data);
-        let write_data = typeof (data) == "object" && data != null ? data : [];
+        let write_data = typeof(data) == "object" && data != null ? data : [];
         if (DATABASE_TYPE == "csv") {
             let head = "aid,title,view,coin,danma,favorite,reply,share,heart_like,pubdate,update_date\n";
             try {
@@ -312,8 +322,8 @@ class VideoSpider extends Spider {
      * @returns {JSON}
      */
     async getInfo() {
-        let raw_data = await request.get(this.spider_url);
-        raw_data = JSON.parse(raw_data).data;
+        let raw_data = JSON.parse(await request.get(this.spider_url));
+        typeof(raw_data) != "object" ? console.log(raw_data): raw_data = raw_data.data
         let stat = raw_data.stat;
         return {
             aid: raw_data.aid,
@@ -326,7 +336,7 @@ class VideoSpider extends Spider {
             share: stat.share,
             heart_like: stat.like,
             pubdate: raw_data.pubdate,
-            update_date: Math.floor(Date.now() / 1000)
+            update_date: Date.now()
         }
     }
 }

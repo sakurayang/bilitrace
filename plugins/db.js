@@ -1,17 +1,16 @@
-const DB = require('better-sqlite3')(__dirname.replace("plugins", "") + 'schedule.db');
-
+const DB = require('better-sqlite3')(__dirname + "/../schedule.db");
+const check = require("./checkParams");
 /**
  * 
  * @param {String} table 
  * @param {Number|String} id 
  */
-async function SELECT(table, id) {
+async function select(table, id) {
     if (!table || !id ||
         !(/[0-9]/.test(id)) ||
-        typeof (table) != "string")
+        typeof(table) != "string")
         throw new Error("Error Paramas");
     let result = await DB.prepare(`SELECT * FROM ${table} WHERE id=${id}`).get();
-
     return result;
 }
 
@@ -21,9 +20,9 @@ async function SELECT(table, id) {
  * @param {Number} limit
  * @param {Number} offset
  */
-async function SELECTALL(table, limit = 0, offset = 0) {
+async function selectAll(table, limit = 0, offset = 0) {
     if (!table ||
-        typeof (table) != "string")
+        typeof(table) != "string")
         throw new Error("Error Paramas");
     let result = [];
     let count = await DB.prepare(`SELECT count(*) FROM ${table}`).get()['count(*)'];
@@ -43,11 +42,11 @@ async function SELECTALL(table, limit = 0, offset = 0) {
  * @param {Number} value.id
  * @param {String} value.time 
  */
-function INSERT(table, value) {
+function insert(table, value) {
     if (!table || !value ||
         !(/[0-9]/ig.test(value.id)) ||
         !(/\*\/*[0-9]* \* \*\/*[0-9]* \* \*/ig).test(value.time) ||
-        typeof (table) != "string")
+        typeof(table) != "string")
         throw new Error("Error Paramas");
     DB.prepare(`INSERT INTO ${table} VALUES ("${value.id}","${value.time}")`).run();
 }
@@ -57,10 +56,10 @@ function INSERT(table, value) {
  * @param {String} table 
  * @param {Number|String} id 
  */
-function DELETE(table, id) {
+function delect(table, id) {
     if (!table || !id ||
         !(/[0-9]/.test(id)) ||
-        typeof (table) != "string")
+        typeof(table) != "string")
         throw new Error("Error Paramas");
     DB.prepare(`DELETE FROM ${table} WHERE id=${id}`).run();
 }
@@ -73,20 +72,20 @@ function DELETE(table, id) {
  * @param {Number} value.id
  * @param {String} value.time 
  */
-function UPDATE(table, id, value) {
+function update(table, id, value) {
     if (!table || !value || !id ||
         !(/[0-9]/ig.test(id)) ||
         !(/\*\/*[0-9]* \* \*\/*[0-9]* \* \*/ig).test(value.time) ||
-        typeof (table) != "string")
+        typeof(table) != "string")
         throw new Error("Error Paramas");
     DB.prepare(`UPDATE ${table} SET time="${value.time}" WHERE id=${id}`).run();
 }
 
 
 module.exports = {
-    SELECT: SELECT,
-    INSERT: INSERT,
-    DELETE: DELETE,
-    UPDATE: UPDATE,
-    SELECTALL: SELECTALL
+    SELECT: select,
+    INSERT: insert,
+    DELETE: delect,
+    UPDATE: update,
+    SELECTALL: selectAll
 }
