@@ -1,22 +1,45 @@
 const {
-    VideoScheduleJob
+    VideoScheduleJob,
+    RankScheduleJob
 } = require('../plugins/Data');
-const Jobs = require("node-schedule").scheduledJobs;
 const DB = require("../plugins/db");
+const check = require("../plugins/checkParams");
 
-async function add(ctx, id, time = "*/5 * * * *") {
-    if (!id || !(/[0-9]/.test(id)) || id in Jobs) {
-        ctx.throw(500, "Error ID");
-        throw Promise.reject(new Error("Error ID"));
+async function add(ctx, id, type = "video", time = "*/5 * * * *") {
+    type = type.toLowerCase();
+    for (const checkitem of [await check.id(DB, id, type, "add"), check.time(time), check.type(type)]) {
+        if (typeof(checkitem) != "boolean") {
+            //ctx.body = checkitem;
+            return checkitem;
+            break;
+        }
     }
-    new VideoScheduleJob(id, time);
-    DB.INSERT("video", {
-        id: id,
-        time: time
-    });
-    ctx.body = `<h3>Sueecssed Create Job ${id} with ${time} </h3>`;
+    switch (type) {
+        default:
+        case "video":
+            await new VideoScheduleJob(id, time);
+            (async () => {
+                let isInDB = typeof(await DB.SELECT("video", id)) != "undefined";
+                isInDB ? true : await DB.INSERT("video", {
+                    id: id,
+                    time: time
+                });
+            })();
+            break;
+        case "rank":
+            await new RankScheduleJob(id, time);
+            (async () => {
+                let isInDB = typeof(await DB.SELECT("rank", id)) != "undefined";
+                isInDB ? true : await DB.INSERT("rank", {
+                    id: id,
+                    time: time
+                });
+            })();
+            break;
+    }
+    ctx.body = `<h3>Sueecssed Create ${type} Job ${id} with ${time} </h3>`;
 }
 
 module.exports = {
-    'add': add
+    add: add
 }

@@ -46,7 +46,6 @@ function parseData(data) {
 }
 
 async function showVideo(ctx, id) {
-    if (isNaN(id)) return Promise.reject(new Error("Error ID"));
     let data = new VideoData(id, PATH);
     let video_data = await data.read();
     let parsed_data = parseData(video_data);
@@ -160,6 +159,31 @@ async function showVideo(ctx, id) {
     ctx.body = html;
 }
 
+async function showRank(ctx, id) {
+    ctx.body("building");
+}
+
+async function show(ctx, id, type = "video") {
+    type = type.toLowerCase();
+    for (const checkitem of [await check.id(require("../plugins/db"), id, type, "show"), check.type(type)]) {
+        if (typeof(checkitem) != "boolean") {
+            ctx.body = checkitem;
+            return checkitem;
+            break;
+        }
+    }
+    switch (type) {
+        default:
+        case "video":
+            await showVideo(ctx, id);
+            break;
+        case "rank":
+            await showRank(ctx, id);
+            break;
+    }
+
+}
+
 module.exports = {
-    'show': showVideo
+    show: show
 }
