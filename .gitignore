@@ -8,6 +8,7 @@ rank.js
 .vscode/
 star.js
 *.db
+user.js
 
 # Logs
 logs
