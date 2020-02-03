@@ -1,10 +1,8 @@
 const request = require("request-promise-native");
-const io = require('socket.io-client');
-const parser = require('socket.io-parser');
-const encoder = new parser.Encoder();
-
+const ws = require('ws');
+const fs = require('fs');
+const zlib = require('zlib');
 class Room {
-
     /**
      * @param {Number} id
      * @returns {this} 
@@ -12,11 +10,13 @@ class Room {
     constructor(id) {
         if (isNaN(id)) return new Error("error ID");
         this.id = id;
-        (async () => {
-            this.danmu = await this._setDanmuURL();
-            this.gift_conf = await this._setgiftConf();
-            this.room_info = await this.getRoomInfo();
-        })();
+
+        return this;
+    }
+    async init() {
+        this.danmu = await this._setDanmuURL();
+        this.gift_conf = await this._setgiftConf();
+        this.room_info = await this.getRoomInfo();
         return this;
     }
     /**
@@ -104,6 +104,7 @@ class Room {
         let conf = await request.get(`https://api.live.bilibili.com/gift/v4/Live/giftConfig?roomid=${this.id}`);
         conf = JSON.parse(conf);
         if (conf.code != 0) return require("./gift.json");
+        return conf;
     }
     /**
      * @returns {{ok:false,error:String}|{
@@ -123,7 +124,7 @@ class Room {
     }}
      */
     async _setDanmuURL() {
-        let info = await request.get("https://api.live.bilibili.com/room/v1/Danmu/getConf");
+        let info = await request.get(`https://api.live.bilibili.com/room/v1/Danmu/getConf?room_id=${this.id}`);
         info = JSON.parse(info);
         if (info.code != 0 && info.msg != "ok") return { ok: false, error: info.message };
         return {
@@ -165,9 +166,9 @@ class Room {
         type = type.toLowerCase();
         let head, body;
         switch (type) {
-            case hello:
+            case 'hello':
                 let data = JSON.stringify({
-                    "uid": 0,
+                    "uid": this._randUid(),
                     "roomid": this.id,
                     "protover": 1,
                     "platform": "web",
@@ -175,13 +176,15 @@ class Room {
                     "type": 2,
                     "key": this.danmu.token
                 });
+                console.log(data);
                 body = Buffer.from(data);
                 let length = body.length + 16
-                head = Buffer.from([0, length, 16, 1, 0, 7, 0, 1]);
+                head = Buffer.from([0, 0, 0, length, 0, 16, 0, 1, 0, 0, 0, 7, 0, 0, 0, 1]);
+                //console.log(Buffer.concat([head, body]))
                 return Buffer.concat([head, body]);
                 break;
-            case heart:
-                head = Buffer.from([0, 31, 16, 1, 0, 2, 0, 1]);
+            case 'heart':
+                head = Buffer.from([0, 0, 0, 31, 0, 16, 0, 1, 0, 0, 0, 2, 0, 0, 0, 1]);
                 body = Buffer.from("[object Object]");
                 return Buffer.concat([head, body]);
                 break;
@@ -190,16 +193,61 @@ class Room {
                 break;
         }
     }
-
-    createSocket() {
-        this.socket = io(`wss://${this.danmu.fastest.host}`, { autoConnect: 0 });
-        this.socket.emit('connect', this.packet('hello'), res => {
-
-        });
+    _randUid() {
+        return 1E15 + Math.floor(2E15 * Math.random())
     }
+    ping() {
+        let date = Date.now();
+        while (true) {
+            if (Date.now - date == 1000) this.socket.send(this.packet('heart'));
+            continue;
+        }
+    }
+    onMessage(data) {
+        fs.writeFile('./log', JSON.stringify(Buffer.from(data)) + '\n', { flag: 'a+' }, err => { });
+        let operation = data.readInt8(11);
+        switch (operation) {
+            case 8:
+                console.log('加入房间');
+                break;
+            case 3:
+                console.log("人气：" + data.readInt32BE(16));
+                break;
+            case 2:
+                this.socket.send(this.packet('heart'));
+                break;
+            case 5:
+                //let _data = JSON.parse(data.toString('utf-8', 16));
+                //console.log(_data);
+                break;
+            default:
+                console.log(data);
+                break;
+        }
+    }
+    async connectSocket() {
+        'danmu' in this ? true : this._setDanmuURL();
+        this.socket = new ws(`wss://broadcastlv.chat.bilibili.com/sub`);
+        this.socket.on('open', () => {
+            this.socket.send(this.packet('hello'));
+            this.socket.send(this.packet('heart'));
+        });
+        setInterval(() => { this.socket.send(this.packet('heart')) }, 1000);
+        this.socket.on('ping', () => {
+            this.socket.send(this.packet('heart'));
+        });
+        this.socket.on('pong', data => {
+            fs.writeFile('./log', JSON.stringify(Buffer.from(data)) + '\n', { flag: 'a+' }, err => { });
+        });
+        this.socket.on('message', data => this.onMessage(data));
+    }
+
 }
 
-//room = new Room(11306).getRoomInfo().then(res => console.log(res));
-module.exports = {
-    Room
-}
+new Room(21572617).init().then(async room => {
+    room.connectSocket();
+});
+
+// module.exports = {
+//     Room
+// }
