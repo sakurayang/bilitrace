@@ -1,3 +1,4 @@
+//TODO 调整DB调用
 const {
     VideoScheduleJob,
     RankScheduleJob
@@ -8,7 +9,7 @@ const check = require("../plugins/checkParams");
 async function add(ctx, id, type = "video", time = "*/5 * * * *") {
     type = type.toLowerCase();
     for (const checkitem of [await check.id(DB, id, type, "add"), check.time(time), check.type(type)]) {
-        if (typeof(checkitem) != "boolean") {
+        if (typeof (checkitem) != "boolean") {
             //ctx.body = checkitem;
             return checkitem;
             break;
@@ -19,7 +20,7 @@ async function add(ctx, id, type = "video", time = "*/5 * * * *") {
         case "video":
             await new VideoScheduleJob(id, time);
             (async () => {
-                let isInDB = typeof(await DB.SELECT("video", id)) != "undefined";
+                let isInDB = typeof (await DB.SELECT("video", id)) != "undefined";
                 isInDB ? true : await DB.INSERT("video", {
                     id: id,
                     time: time
@@ -29,7 +30,7 @@ async function add(ctx, id, type = "video", time = "*/5 * * * *") {
         case "rank":
             await new RankScheduleJob(id, time);
             (async () => {
-                let isInDB = typeof(await DB.SELECT("rank", id)) != "undefined";
+                let isInDB = typeof (await DB.SELECT("rank", id)) != "undefined";
                 isInDB ? true : await DB.INSERT("rank", {
                     id: id,
                     time: time

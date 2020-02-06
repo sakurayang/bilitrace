@@ -1,3 +1,4 @@
+//TODO 调整DB调用
 const Jobs = require("node-schedule").scheduledJobs;
 const DB = require("../plugins/db");
 const check = require("../plugins/checkParams");
@@ -5,7 +6,7 @@ const check = require("../plugins/checkParams");
 async function remove(ctx, id, type = "video") {
     type = type.toLowerCase();
     for (const checkitem of [await check.id(DB, id, type, "remove"), check.type(type)]) {
-        if (typeof(checkitem) != "boolean") {
+        if (typeof (checkitem) != "boolean") {
             return checkitem;
             break;
         }
