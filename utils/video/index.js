@@ -1,8 +1,4 @@
-// TODO 增加show
-const {
-    VideoScheduleJob,
-    VideoData
-} = require('../Data');
+const { VideoScheduleJob } = require('../Data');
 const fs = require("fs");
 const path = require("path");
 const data_path = require("../../config").data_path;
@@ -15,9 +11,9 @@ const PATH = path.join(data_path, "video.json");
  */
 function add(id, time = "*/5 * * * *") {
     if (isNaN(id)) {
-        return `id: ${id} is not a number`;
+        return { code: -1, msg: `id: ${id} not a number` };
     } else if (typeof (time) !== "string" || !(/\*\/*[0-9]* \* \*\/*[0-9]* \* \*/ig).test(time)) {
-        return `time: ${time} is not suit format`;
+        return { code: -1, msg: `time: ${time} is not suit format` };
     }
     new VideoScheduleJob(id, time);
     let video_list = require(PATH);
@@ -36,7 +32,7 @@ function add(id, time = "*/5 * * * *") {
  */
 function remove(id) {
     let Jobs = require("node-schedule").scheduledJobs;
-    if (isNaN(id)) return `id: ${id} is not a number`;
+    if (isNaN(id)) return { code: -1, msg: `id: ${id} not a number` };
     Jobs[`video_${String(id)}`].cancel();
     let video_list = require(PATH);
     for (const index in video_list.list) {
@@ -50,7 +46,12 @@ function remove(id) {
     return { code: -1, msg: `id: ${id} not found` };
 }
 
-async function update(id, type = "video", time = "*/5 * * * *") {
+/**
+ * 
+ * @param {Number} id 
+ * @param {String} time 
+ */
+async function update(id, time = "*/5 * * * *") {
     try {
         await remove(ctx, id, type);
         await add(ctx, id, type, time);
@@ -60,9 +61,36 @@ async function update(id, type = "video", time = "*/5 * * * *") {
     }
 }
 
+/**
+ * 
+ * @param {Number} id 
+ * @param {Boolean} init
+ */
+async function read(id, init = false) {
+    let db = require("../db");
+    try {
+        let result;
+        if (init) {
+            result = await db.selectAll(path.join(data_path, "video.db"), id).result;
+        } else {
+            result = await db.select(path.join(data_path, "video.db"), id);
+        }
+        return {
+            code: 0,
+            msg: "",
+            result
+        }
+    } catch (error) {
+        return {
+            code: -1,
+            msg: error
+        }
+    }
+}
+
 module.exports = {
     add,
     remove,
     update,
-    show
+    read
 }

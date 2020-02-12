@@ -27,10 +27,13 @@ function parseObject(obj) {
  * @param {String} params
  * @return {JSON}
  */
-async function select(filename, table, params = ["aid > 0"]) {
+async function select(filename, table, params = []) {
     let DB = require('better-sqlite3')(path.normalize(`${PATH}/${filename}`));
     try {
-        let result = await DB.prepare(`SELECT * FROM "${table}" WHERE ${parseObject(params).string}`).get();
+        let last_num = await getCount(filename, table, params);
+        let result = await DB.prepare(`SELECT * FROM "${table}"` +
+            `${Object.keys(params).length == 0 ? ' ' : 'WHERE ' + parseObject(params).string}` +
+            `LIMIT 1 OFFSET ${last_num - 1}`).get();
         return {
             code: 0,
             msg: "",
@@ -43,11 +46,11 @@ async function select(filename, table, params = ["aid > 0"]) {
         };
     }
 }
-async function getCount(filename, table, where = {}) {
+async function getCount(filename, table, params = []) {
     let DB = require('better-sqlite3')(path.normalize(`${PATH}/${filename}`));
     try {
         let count = await DB.prepare(`SELECT count(*) FROM "${table}"` +
-            `${Object.keys(where).length == 0 ? ' ' : 'WHERE ' + parseObject(where).string}`).get()['count(*)'];
+            `${Object.keys(params).length == 0 ? ' ' : 'WHERE ' + parseObject(params).string}`).get()['count(*)'];
         return count;
     } catch (error) {
         return {
@@ -65,18 +68,20 @@ async function getCount(filename, table, where = {}) {
  * @returns {{count: Number, 
     result: Array<JSON>}}
  */
-async function selectAll(filename, table, where, limit = 0, offset = 0) {
+async function selectAll(filename, table, params = [], limit = 0, offset = 0) {
     let DB = require('better-sqlite3')(path.normalize(`${PATH}/${filename}`));
     try {
         let result = [];
-        let count = await DB.prepare(`SELECT count(*) FROM "${table}" WHERE ${parseObject(where).string}`).get()['count(*)'];
+        let count = await getCount(filename, table);
         let limit = limit ? limit : count;
         //console.log(count);
         //console.log(limit);
         for (let i = 0; i < Math.abs(limit - offset); i++) {
             if (i > count - offset - 1) break;
             //console.log(i, parseObject(where).string);
-            let db_data = await DB.prepare(`SELECT * FROM "${table}" WHERE ${parseObject(where).string} LIMIT 1 OFFSET ${offset + i}`).get();
+            let db_data = await DB.prepare(`SELECT * FROM "${table}"` +
+                `${Object.keys(params).length == 0 ? ' ' : 'WHERE ' + parseObject(params).string}` +
+                ` LIMIT 1 OFFSET ${offset + i}`).get();
             result.push(db_data);
         }
         return { code: 0, msg: "", count, result };
