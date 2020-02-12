@@ -1,9 +1,11 @@
 const DB = require("better-sqlite3")("./schedule.db");
-const config = require("./config.json");
-
+const config = require("./config.js");
+const schedule = require("node-schedule");
 const koa = require('koa');
 const serve = require('koa-static');
 const _ = require('koa-route');
+
+const watcher = require("./watch");
 
 const db = require("./plugins/db");
 
@@ -13,6 +15,10 @@ const remove = require('./router/remove').remove;
 const update = require('./router/update').update;
 
 const app = new koa();
+
+schedule.scheduleJob("watch", "*/1 * * * *", async () => {
+    await watcher.video(2169841)
+});
 
 try {
     DB.prepare("CREATE TABLE video (aid text NOT NULL, time text NOT NULL)").run();

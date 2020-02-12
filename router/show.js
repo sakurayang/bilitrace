@@ -2,7 +2,7 @@ const {
     VideoData
 } = require("../plugins/Data");
 
-const config = require("../config.json");
+const config = require("../config.js");
 
 const PATH = config.database.type.toLowerCase() == "csv" ? config.database.csv.path : config.database.mysql;
 

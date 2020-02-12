@@ -2,7 +2,7 @@ const request = require('request-promise-native');
 const schedule = require('node-schedule');
 const fs = require("fs");
 
-const config = require("../config.json");
+const config = require("../config.js");
 
 const DATABASE_TYPE = config.database.type.toLowerCase();
 //const DATABASE_TYPE = "csv";
