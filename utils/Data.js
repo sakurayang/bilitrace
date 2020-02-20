@@ -7,206 +7,64 @@ const ws = require('ws');
 const parser = require("./live/parser");
 const db = require("./db");
 
+const config = require("../config");
+let g_data_path = config.data_path;
+
 var prev_job_time = Date.now();
 
-class CreateScheduleJob {
-    /**
-     * 
-     * @param {String} type 
-     * @param {Number} id 
-     * @param {String} time 
-     * @param {Number} day 
-     * @returns {this}
-     */
-    constructor(type, id, time = "*/5 * * * *", day = 3) {
-        this.job_type = String(type) || "rank";
-        this.job_id = String(id);
-        this.job_time = String(time) || "*/5 * * * *";
-        this.job_day = day || 3;
-        return this;
-    }
-    cancel() {
-        this.job.cancel();
+/**
+ * 
+ * @param {String} name 
+ * @param {String} time 
+ * @param {Function} func 
+ * @returns {Error|schedule.Job}
+ */
+function createScheudle(name, time, func = () => {}) {
+    try {
+        let job = schedule.scheduleJob(String(name), time, func);
+        return job
+    } catch (error) {
+        throw error;
     }
 }
-class RankScheduleJob extends CreateScheduleJob {
-    /**
-     * 
-     * @param {Number} id 
-     * @param {String} time 
-     * @param {Number} day 
-     */
-    constructor(id, time = "* * */3 * *", day = 3) {
-        super("rank", id, time, day);
-        this.job_type = "rank";
-        this.job_id = id;
-        this.spider = new RankSpider(this.job_id);
-        this.data = new RankData(this.job_id);
-        this.job = schedule.scheduleJob(String(id), this.job_time, async () => {
-            let l_prev_job_time = prev_job_time;
-            while (Date.now() - l_prev_job_time < 1000) {
-                ;
-            }
-            prev_job_time = Date.now();
-            let info = await this.spider.getInfo();
-            //console.log(info);
-            for (const item of info.result) {
-                this.data.write(item);
-            };
-        });
-        return this;
-    }
-}
-class VideoScheduleJob extends CreateScheduleJob {
-    /**
-     * 
-     * @param {Number} id 
-     * @param {String} time 
-     */
-    constructor(id, time) {
-        super("video", id, time);
-        this.job_id = id;
-        this.job_type = "video";
-        this.spider = new VideoSpider(this.job_id);
-        this.data = new VideoData(this.job_id);
-        this.job = schedule.scheduleJob(String(id), this.job_time, async () => {
+
+//TODO: 测试
+class Video {
+    constructor(id, time = "*/5 * * * *") {
+        this.id = Number(id);
+        this.schedule_time = time;
+        this.data_path = path.join(g_data_path, "video.db");
+        this.init();
+        this.job = createScheudle(String(this.id), this.schedule_time, async () => {
             while (Date.now() - prev_job_time < 100) {
                 ;
             }
             prev_job_time = Date.now();
-            let info = await this.spider.getInfo();
-            //console.log(info);
-            this.data.write(info.result);
+            let info = await this.getInfo();
+            if (info.code !== 0) return;
+            this.write(info.result);
         });
-        return this;
-    }
-}
-
-
-class Data {
-    get name() {
-        return this.data_path;
-    }
-
-    /**
-     * @param {String} datatype 
-     * @param {Number|String} id
-     * @return {Object}
-     */
-    constructor(datatype, id) {
-        this.data_type = datatype;
-        this.data_id = Number(id);
-        this.data_path = require("../config").data_path;
-        return this;
-    }
-
-    /**
-     * @param {JSON} write_data
-     * @returns {Null}
-     */
-    write(write_data) {
-        db.insert(this.data_type, this.data_id, write_data);
-    }
-
-
-    /** 
-     * @returns {{code:Number,msg:String,result:Array<JSON>}}
-     */
-    async read(init = false) {
-        try {
-            let data;
-            if (init) {
-                data = await db.selectAll(this.data_type, this.data_id);
-            } else {
-                data = await db.select(this.data_type, this.data_id);
-            }
-            return {
-                code: 0,
-                msg: "",
-                result: data
-            }
-        } catch (error) {
-            return {
-                code: -1,
-                msg: error
-            }
-        }
-    }
-
-}
-
-class RankData extends Data {
-    /**
-     * 
-     * @param {Number} id 
-     */
-    constructor(id) {
-        super("rank", id);
-        this.data_id = Number(id);
-        this.data_type = "rank";
-        this.init();
+        this.job.invoke();
         return this;
     }
 
     async init() {
-        await require('better-sqlite3')(path.join(data_path, "live.db"))
-            .prepare(`CREATE TABLE IF NOT EXISTS "${this.id}_gift" ` +
-                "(id          integer  primary key  AUTOINCREMENT not null," +
-                " aid         interger not null," +
-                " rank        interger not null" +
-                " point       interger not null" +
-                " title       text not null" +
-                " tid         integer  not null," +
-                " tname       text     not null" +
-                " author_mid  integer  not null" +
-                " author_name integer  not null" +
-                " update_time integer  not null," +
-                " time        integer  not null)"
+        await require('better-sqlite3')(this.data_path)
+            .prepare(`CREATE TABLE IF NOT EXISTS "${this.id}" ` +
+                "(id           integer  primary key  AUTOINCREMENT not null," +
+                " aid          integer  not null," +
+                " title        text     not null" +
+                " coin         integer  not null" +
+                " danma        integer  not null," +
+                " favorite     integer  not null" +
+                " reply        integer  not null" +
+                " share        integer  not null" +
+                " heart_like   integer  not null," +
+                " public_time  integer  not null)" +
+                " update_time  integer  not null"
             ).run();
     }
-}
 
-class VideoData extends Data {
-    constructor(id) {
-        super("video", id);
-        this.data_id = Number(id);
-        this.data_type = "video";
-        this.init();
-        return this;
-    }
-    async init() {
-        await require('better-sqlite3')(path.join(data_path, "live.db"))
-            .prepare(`CREATE TABLE IF NOT EXISTS "${this.id}_gift" ` +
-                "(id          integer  primary key  AUTOINCREMENT not null," +
-                " aid         interger not null," +
-                " rank        interger not null" +
-                " point       interger not null" +
-                " title       text not null" +
-                " tid         integer  not null," +
-                " tname       text     not null" +
-                " author_mid  integer  not null" +
-                " author_name integer  not null" +
-                " update_time integer  not null," +
-                " time        integer  not null)"
-            ).run();
-    }
-}
-
-class Spider {
-    constructor(type, id, day = 3) {
-        this.spider_type = type.toLowerCase();
-        this.spider_id = id;
-        this.spider_day = day;
-        return this;
-    }
-}
-
-class VideoSpider extends Spider {
-    constructor(id) {
-        super("video", id);
-        this.spider_url = `https://api.bilibili.com/x/web-interface/view?aid=${this.spider_id}`;
-        return this;
-    }
     /**
      * @returns {{
         code:Number,
@@ -221,107 +79,212 @@ class VideoSpider extends Spider {
             reply: Number,
             share: Number,
             heart_like: Number,
-            pubdate: Number,
-            update_date: Number
+            public_time: Number,
+            update_time: Number
         }
     }}
      */
     async getInfo() {
-        let raw_data;
         try {
-            raw_data = JSON.parse(await request.get(this.spider_url));
-            typeof (raw_data) != "object" ? console.log(raw_data) : raw_data = raw_data.data;
+            let raw_data;
+            raw_data = JSON.parse(await request.get("https://api.bilibili.com/x/web-interface/view?aid=" + this.id));
+            let stat = raw_data.stat;
+            return {
+                code: 0,
+                msg: "",
+                result: {
+                    aid: raw_data.aid,
+                    title: raw_data.title,
+                    view: stat.view,
+                    coin: stat.coin,
+                    danma: stat.danmaku,
+                    favorite: stat.favorite,
+                    reply: stat.reply,
+                    share: stat.share,
+                    heart_like: stat.like,
+                    public_time: raw_data.pubdate,
+                    update_time: Date.now()
+                }
+            }
+        } catch (error) {
+            console.log(error);
+            return {
+                code: -1,
+                msg: error
+            }
+        }
+    }
+
+    /**
+     * @param {JSON} write_data
+     * @returns {Null}
+     */
+    write(write_data) {
+        db.insert(this.data_path, this.id, write_data);
+    }
+
+    /** 
+     * @returns {{code:Number,msg:String,result:Array<JSON>}}
+     */
+    async read(init = false) {
+        try {
+            let data;
+            if (init) {
+                data = await db.selectAll(this.data_path, this.data_id);
+            } else {
+                data = await db.select(this.data_path, this.data_id);
+            }
+            return {
+                code: 0,
+                msg: "",
+                result: data
+            }
         } catch (error) {
             return {
                 code: -1,
                 msg: error
             }
         }
-        let stat = raw_data.stat;
-        return {
-            code: 0,
-            msg: "",
-            result: {
-                aid: raw_data.aid,
-                title: raw_data.title,
-                view: stat.view,
-                coin: stat.coin,
-                danma: stat.danmaku,
-                favorite: stat.favorite,
-                reply: stat.reply,
-                share: stat.share,
-                heart_like: stat.like,
-                pubdate: raw_data.pubdate,
-                update_date: Date.now()
-            }
-        }
     }
+
+    cancel() {
+        if (this.job instanceof schedule.Job) this.job.cancel();
+    }
+
 }
 
-class RankSpider extends Spider {
-    constructor(id, ...time) {
-        time = time.length == 0 ? [Date.now()] : time;
-        let from = time ?
-            new Date(time[0]).toISOString().substr(0, 10) :
-            new Date(Date.now()).toISOString().substr(0, 10);
-        let to = time && time.length > 1 ?
-            new Date(time[1]).toISOString().substr(0, 10) :
-            from.substr(0, 8) + String(Number(new Date(from).getDate()) + 3).padStart(2, 0);
-        let day = Number(to.substr(8, 2)) - Number(from.substr(8, 2));
-        super("rank", id, day);
-        this.spider_url = `https://api.bilibili.com/x/web-interface/ranking/region?rid=${this.spider_id}&day=${this.spider_day}`
-        this.spider_time = {
-            from: from,
-            to: to,
-            day: day
-        };
+//TODO: 测试
+class Rank {
+    constructor(id, interval = 3, time = "* * */3 * *") {
+        this.id = Number(id);
+        this.schedule_time = time;
+        this.data_path = path.join(g_data_path, "rank.db");
+        this.interval = interval;
+        this.init();
+        this.job = createScheudle(String(this.id), this.schedule_time, async () => {
+            while (Date.now() - prev_job_time < 100) {
+                ;
+            }
+            prev_job_time = Date.now();
+            let info = await this.getInfo();
+            if (info.code !== 0) return;
+            for (const item of info.result) {
+                this.write(item);
+            }
+
+        });
+        this.job.invoke();
         return this;
     }
+
+    async init() {
+        await require('better-sqlite3')(this.data_path)
+            .prepare(`CREATE TABLE IF NOT EXISTS "${this.id}" ` +
+                "(count        integer   not null," +
+                " aid          integer   not null," +
+                " rank         integer   not null" +
+                " point        integer   not null" +
+                " title        text not  null" +
+                " tid          integer   not null," +
+                " tname        text      not null" +
+                " author_mid   integer   not null" +
+                " author_name  integer   not null" +
+                " update_time  integer   not null," +
+                " public_time  integer   not null)"
+            ).run();
+        let last_data = (await db.select(this.data_path, this.id)).result;
+        this.count = last_data === undefined ? 0 : last_data.count + 1;
+    }
+
     /**
      * @returns {{
         code:Number,
         msg:String,
-        result:?Array<{
-            aid: Number,
-            title: String,
-            view: Number,
-            coin: Numbern,
-            danma: Number,
-            favorite: Number,
-            reply: Number,
-            share: Number,
-            heart_like: Number,
-            pubdate: Number,
-            update_date: Number
+        result:Array<{
+            count: Number,
+            aid: Number
+            rank: Number
+            point: Number
+            title: String
+            tid: Number
+            tname: String
+            author_mid: Number
+            author_name: String
+            update_time: Number
+            public_time: Number
         }>
     }}
      */
     async getInfo() {
-        let raw_data = await request.get(this.spider_url);
-        raw_data = JSON.parse(raw_data).data;
-        let db_data = [];
-        //console.log(data);
-        for (let rank = 0, len = raw_data.length; rank < len; rank++) {
-            let video = raw_data[rank];
-            db_data.push({
-                aid: video.aid,
-                title: video.title,
-                tid: this.spider_id,
-                tname: video.typename,
-                author_name: video.author,
-                author_mid: video.mid,
-                rank: rank + 1,
-                point: video.pts,
-                time: video.create,
-                update_date: Date.now()
-            });
+        try {
+            let raw_data = JSON.parse(await request.get(`https://api.bilibili.com/x/web-interface/ranking/region?rid=${this.id}&day=${this.interval}`));
+            let db_data = [];
+            for (let rank = 0, len = raw_data.length; rank < len; rank++) {
+                let video = raw_data[rank];
+                db_data.push({
+                    count: this.count,
+                    aid: video.aid,
+                    rank: rank + 1,
+                    point: video.pts,
+                    title: video.title,
+                    tid: this.spider_id,
+                    tname: video.typename,
+                    author_mid: video.mid,
+                    author_name: video.author,
+                    update_time: Date.now(),
+                    public_time: video.create
+                });
+            }
+            return {
+                code: 0,
+                msg: "",
+                result: db_data
+            };
+        } catch (error) {
+            console.log(error);
+            return {
+                code: -1,
+                msg: error
+            }
         }
-        return {
-            code: 0,
-            msg: "",
-            result: db_data
-        };
     }
+
+    /**
+     * @param {JSON} write_data
+     * @returns {Null}
+     */
+    write(write_data) {
+        db.insert(this.data_path, this.id, write_data);
+    }
+
+    /** 
+     * @returns {{code:Number,msg:String,result:Array<JSON>}}
+     */
+    async read(init = false) {
+        try {
+            let data;
+            if (init) {
+                data = await db.selectAll(this.data_path, this.data_id);
+            } else {
+                data = await db.select(this.data_path, this.data_id);
+            }
+            return {
+                code: 0,
+                msg: "",
+                result: data
+            }
+        } catch (error) {
+            return {
+                code: -1,
+                msg: error
+            }
+        }
+    }
+
+    cancel() {
+        if (this.job instanceof schedule.Job) this.job.cancel();
+    }
+
 }
 
 class Room {
@@ -333,18 +296,18 @@ class Room {
         if (isNaN(id)) return new Error("error ID");
         this.id = id;
         this.init();
-        this.database = path = path.join(data_path, "live.db");
+        this.data_path = path.join(g_data_path, "live.db");
         return this;
     }
     async init() {
-        await require('better-sqlite3')(path.join(data_path, "live.db"))
+        await require('better-sqlite3')(this.data_path)
             .prepare(`CREATE TABLE IF NOT EXISTS "${this.id}" ` +
                 "(count        integer  not null," +
                 " update_time  integer  not null," +
                 " time         integer  not null," +
                 " views        integer  not null)"
             ).run();
-        await require('better-sqlite3')(path.join(data_path, "live.db"))
+        await require('better-sqlite3')(this.data_path)
             .prepare(`CREATE TABLE IF NOT EXISTS "${this.id}_gift" ` +
                 "(id           integer  primary key  AUTOINCREMENT not null," +
                 " count        integer  not null," +
@@ -398,7 +361,10 @@ class Room {
     async getRoomInfo() {
         let info = await request.get(`https://api.live.bilibili.com/xlive/web-room/v1/index/getInfoByRoom?room_id=${this.id}`);
         info = JSON.parse(info);
-        if (info.code != 0) return { code: 1, error: info.message };
+        if (info.code != 0) return {
+            code: 1,
+            error: info.message
+        };
         let data = info.data;
         let room_info = data.room_info;
         let live_status = room_info.live_status;
@@ -444,8 +410,14 @@ class Room {
     async getGiftList() {
         let list = await request.get(`https://api.live.bilibili.com/gift/v3/live/room_gift_list?roomid=${this.id}`);
         list = JSON.parse(list);
-        if (list.code != 0) return { ok: false, error: list.message };
-        return { list: list.data.list, sliver_list: list.data.sliver_list };
+        if (list.code != 0) return {
+            ok: false,
+            error: list.message
+        };
+        return {
+            list: list.data.list,
+            sliver_list: list.data.sliver_list
+        };
     }
 
     async getgiftConf() {
@@ -474,7 +446,10 @@ class Room {
     async getDanmuURL() {
         let info = await request.get(`https://api.live.bilibili.com/room/v1/Danmu/getConf?room_id=${this.id}`);
         info = JSON.parse(info);
-        if (info.code != 0 && info.msg != "ok") return { ok: false, error: info.message };
+        if (info.code != 0 && info.msg != "ok") return {
+            ok: false,
+            error: info.message
+        };
         return {
             port: info.data.port,
             host: info.data.host,
@@ -535,17 +510,20 @@ class Room {
         return 1E15 + Math.floor(2E15 * Math.random())
     }
     onMessage(data) {
-        fs.writeFile('./ws.log', JSON.stringify(Buffer.from(data)) + '\n', { flag: 'a+' }, err => { });
+        fs.writeFile('./ws.log', JSON.stringify(Buffer.from(data)) + '\n', {
+            flag: 'a+'
+        }, err => {});
         let parsed = parser.packet(data);
-        fs.writeFile('./pasred.log', JSON.stringify(parsed) + '\n', { flag: 'a+' }, err => { });
+        fs.writeFile('./pasred.log', JSON.stringify(parsed) + '\n', {
+            flag: 'a+'
+        }, err => {});
 
         if (parsed.code !== 0) console.log(parsed);
 
         if (parsed.type == "view") {
             db.insert(
-                this.database,
-                this.id,
-                {
+                this.data_path,
+                this.id, {
                     count: this.live_counter,
                     time: this.room_info.room.start_time,
                     update_time: parsed.data.time,
@@ -553,9 +531,8 @@ class Room {
                 });
         } else if (parsed.type == "gift") {
             db.insert(
-                this.database,
-                this.id + "_gift",
-                {
+                this.data_path,
+                this.id + "_gift", {
                     count: this.live_counter,
                     time: this.room_info.room.start_time,
                     update_time: parsed.data.timestamp,
@@ -567,9 +544,8 @@ class Room {
                 });
         } else if (parsed.type == "guard_buy") {
             db.insert(
-                this.database,
-                this.id + "_gift",
-                {
+                this.data_path,
+                this.id + "_gift", {
                     count: this.live_counter,
                     time: this.room_info.room.start_time,
                     update_time: parsed.data.time,
@@ -581,9 +557,8 @@ class Room {
                 });
         } else if (parsed.type == "super_chat") {
             db.insert(
-                this.database,
-                this.id + "_gift",
-                {
+                this.data_path,
+                this.id + "_gift", {
                     count: this.live_counter,
                     time: this.room_info.room.start_time,
                     update_time: parsed.data.time,
@@ -601,12 +576,16 @@ class Room {
             this.socket.send(this.getPacket('hello'));
             this.socket.send(this.getPacket('heart'));
         });
-        this.socketInterval = setInterval(() => { this.socket.send(this.getPacket('heart')) }, 5000);
+        this.socketInterval = setInterval(() => {
+            this.socket.send(this.getPacket('heart'))
+        }, 5000);
         this.socket.on('ping', () => {
             this.socket.send(this.getPacket('heart'));
         });
         this.socket.on('pong', data => {
-            fs.writeFile('./log', JSON.stringify(Buffer.from(data)) + '\n', { flag: 'a+' }, err => { });
+            fs.writeFile('./log', JSON.stringify(Buffer.from(data)) + '\n', {
+                flag: 'a+'
+            }, err => {});
         });
         this.socket.on('message', data => this.onMessage(data));
     }
@@ -643,20 +622,16 @@ class Room {
         let last_data = await db.selectAll(this.database, this.id, ['count >= 0'], 1, database_count - 1);
         let db_live_count = last_data.result.length === 0 ? 0 : last_data.result[0].count;
         let last_live_time = last_data.result.length === 0 ? this.room_info.room.start_time : last_data.result[0].time;
-        this.live_counter = this.live_status
-            ? this.room_info.room.start_time == last_live_time
-                ? db_live_count
-                : db_live_count + 1
-            : db_live_count;
+        this.live_counter = this.live_status ?
+            this.room_info.room.start_time == last_live_time ?
+            db_live_count :
+            db_live_count + 1 :
+            db_live_count;
     }
 }
 
 module.exports = {
-    RankScheduleJob,
-    VideoScheduleJob,
-    RankData,
-    VideoData,
-    VideoSpider,
-    RankSpider,
+    Video,
+    Rank,
     Room
 }
