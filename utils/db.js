@@ -2,6 +2,7 @@
 const config = require("../config");
 const path = require("path");
 const PATH = config.data_path;
+
 function parseObject(obj) {
     let keys = Object.keys(obj);
     let values = Object.values(obj);
@@ -73,7 +74,7 @@ async function selectAll(filename, table, params = [], limit = 0, offset = 0) {
     try {
         let result = [];
         let count = await getCount(filename, table);
-        let limit = limit ? limit : count;
+        limit = limit !== 0 ? limit : count;
         //console.log(count);
         //console.log(limit);
         for (let i = 0; i < Math.abs(limit - offset); i++) {
@@ -84,7 +85,12 @@ async function selectAll(filename, table, params = [], limit = 0, offset = 0) {
                 ` LIMIT 1 OFFSET ${offset + i}`).get();
             result.push(db_data);
         }
-        return { code: 0, msg: "", count, result };
+        return {
+            code: 0,
+            msg: "",
+            count,
+            result
+        };
     } catch (error) {
         return {
             code: -1,
