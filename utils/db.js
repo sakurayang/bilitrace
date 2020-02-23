@@ -29,7 +29,7 @@ function parseObject(obj) {
  * @return {JSON}
  */
 async function select(filename, table, params = []) {
-    let DB = require('better-sqlite3')(path.normalize(`${PATH}/${filename}`));
+    let DB = require('better-sqlite3')(path.join(PATH, filename));
     try {
         let last_num = await getCount(filename, table, params);
         let result = await DB.prepare(`SELECT * FROM "${table}"` +

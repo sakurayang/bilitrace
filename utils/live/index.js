@@ -1,5 +1,6 @@
 const db = require("../db");
 const path = require("path");
+const fs = require("fs");
 const config = require("../../config");
 const g_data_path = config.data_path;
 
@@ -37,7 +38,7 @@ let live_list = {};
 }}
 */
 async function getRoomData(id, init = false) {
-    let data_path = path.join(g_data_path, "live.db");
+    let data_path = "live.db";
     let live_time_count = (await db.select(data_path, id)).result.count;
 
     let query = {

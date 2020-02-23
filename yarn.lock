@@ -457,6 +457,12 @@ negotiator@0.6.2:
   version "0.6.2"
   resolved "https://registry.yarnpkg.com/negotiator/-/negotiator-0.6.2.tgz#feacf7ccf525a77ae9634436a64883ffeca346fb"
 
+node-global-storage@^1.2.3:
+  version "1.2.3"
+  resolved "https://registry.yarnpkg.com/node-global-storage/-/node-global-storage-1.2.3.tgz#9f93710254d918692256925b2a60bd9ab401c979"
+  dependencies:
+    underscore "^1.8.3"
+
 node-gyp-build@~3.7.0:
   version "3.7.0"
   resolved "https://registry.yarnpkg.com/node-gyp-build/-/node-gyp-build-3.7.0.tgz#daa77a4f547b9aed3e2aac779eaf151afd60ec8d"
@@ -648,6 +654,10 @@ type-is@^1.6.16:
   dependencies:
     media-typer "0.3.0"
     mime-types "~2.1.24"
+
+underscore@^1.8.3:
+  version "1.9.2"
+  resolved "https://registry.yarnpkg.com/underscore/-/underscore-1.9.2.tgz#0c8d6f536d6f378a5af264a72f7bec50feb7cf2f"
 
 uri-js@^4.2.2:
   version "4.2.2"

@@ -6,9 +6,6 @@ const ws = require('ws');
 const parser = require("./live/parser");
 const db = require("./db");
 
-const config = require("../config");
-let g_data_path = config.data_path;
-
 var prev_job_time = Date.now();
 
 /**
@@ -32,7 +29,7 @@ class Video {
     constructor(id, time = "*/5 * * * *") {
         this.id = Number(id);
         this.schedule_time = time;
-        this.data_path = path.join(g_data_path, "video.db");
+        this.data_path = "video.db";
         this.init();
         this.job = createScheudle(String(this.id), this.schedule_time, async () => {
             while (Date.now() - prev_job_time < 100) {
@@ -52,15 +49,15 @@ class Video {
             .prepare(`CREATE TABLE IF NOT EXISTS "${this.id}" ` +
                 "(id           integer  primary key  AUTOINCREMENT not null," +
                 " aid          integer  not null," +
-                " title        text     not null" +
-                " coin         integer  not null" +
+                " title        text     not null," +
+                " coin         integer  not null," +
                 " danma        integer  not null," +
-                " favorite     integer  not null" +
-                " reply        integer  not null" +
-                " share        integer  not null" +
+                " favorite     integer  not null," +
+                " reply        integer  not null," +
+                " share        integer  not null," +
                 " heart_like   integer  not null," +
-                " public_time  integer  not null)" +
-                " update_time  integer  not null"
+                " public_time  integer  not null," +
+                " update_time  integer  not null)"
             ).run();
     }
 
@@ -86,7 +83,7 @@ class Video {
     async getInfo() {
         try {
             let raw_data;
-            raw_data = JSON.parse(await request.get("https://api.bilibili.com/x/web-interface/view?aid=" + this.id));
+            raw_data = JSON.parse(await request.get("https://api.bilibili.com/x/web-interface/view?aid=" + this.id)).data;
             let stat = raw_data.stat;
             return {
                 code: 0,
@@ -157,7 +154,7 @@ class Rank {
     constructor(id, interval = 3, time = "* * */3 * *") {
         this.id = Number(id);
         this.schedule_time = time;
-        this.data_path = path.join(g_data_path, "rank.db");
+        this.data_path = "rank.db";
         this.interval = interval;
         this.init();
         this.job = createScheudle(String(this.id), this.schedule_time, async () => {
@@ -181,13 +178,13 @@ class Rank {
             .prepare(`CREATE TABLE IF NOT EXISTS "${this.id}" ` +
                 "(count        integer   not null," +
                 " aid          integer   not null," +
-                " rank         integer   not null" +
-                " point        integer   not null" +
-                " title        text not  null" +
+                " rank         integer   not null," +
+                " point        integer   not null," +
+                " title        text      not null," +
                 " tid          integer   not null," +
-                " tname        text      not null" +
-                " author_mid   integer   not null" +
-                " author_name  integer   not null" +
+                " tname        text      not null," +
+                " author_mid   integer   not null," +
+                " author_name  integer   not null," +
                 " update_time  integer   not null," +
                 " public_time  integer   not null)"
             ).run();
@@ -295,7 +292,7 @@ class Room {
         if (isNaN(id)) return new Error("error ID");
         this.id = id;
         this.init();
-        this.data_path = path.join(g_data_path, "live.db");
+        this.data_path = "live.db";
         return this;
     }
     async init() {

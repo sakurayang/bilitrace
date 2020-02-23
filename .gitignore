@@ -1,6 +1,6 @@
 node_modules
 config.js
-data
+old
 *.csv
 rank.js
 .jsbeautifyrc
@@ -10,7 +10,7 @@ star.js
 *.db
 gift.json
 video.json
-
+list.json
 # Logs
 logs
 log

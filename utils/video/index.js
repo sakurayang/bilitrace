@@ -19,14 +19,18 @@ function add(id, time = "*/5 * * * *") {
             code: -1,
             msg: `id: ${id} not a number`
         };
-    } else if (typeof (time) !== "string" || /^((\*((\/[0-9]{1,2})?))[\s]){4,5}\2/ig.test() !== true) {
+    } else if (typeof (time) !== "string" || /^((\*((\/[0-9]{1,2})?))[\s]){4,5}\2/ig.test(time) !== true) {
         return {
             code: -1,
             msg: `time: ${time} is not suit format`
         };
     }
-    let video_list = require(PATH);
-    for (const video of video_list.list) {
+    let data = fs.readFileSync(PATH, {
+        encoding: 'utf-8'
+    });
+    data = JSON.parse(data);
+    let video_list = data.list;
+    for (const video of video_list) {
         if (id === video.aid)
             return {
                 code: -1,
@@ -51,12 +55,11 @@ function add(id, time = "*/5 * * * *") {
  * @returns {{code:Number,msg:String}}
  */
 function remove(id) {
-    let Jobs = require("node-schedule").scheduledJobs;
     if (isNaN(id)) return {
         code: -1,
         msg: `id: ${id} not a number`
     };
-    Jobs[`video_${String(id)}`].cancel();
+    task_list[id].cancel();
     let video_list = require(PATH);
     for (const index in video_list.list) {
         let video = video_list[index];
@@ -109,9 +112,9 @@ async function read(id, init = false) {
     try {
         let result;
         if (init) {
-            result = (await db.selectAll(path.join(data_path, "video.db"), id)).result;
+            result = (await db.selectAll("video.db", id)).result;
         } else {
-            result = (await db.select(path.join(data_path, "video.db"), id)).result;
+            result = (await db.select("video.db", id)).result;
         }
         return {
             code: 0,
