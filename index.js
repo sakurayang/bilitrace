@@ -1,24 +1,15 @@
-const path = require("path");
-const fs = require("fs");
-
 const server = require("./server").app;
 const live = require("./utils/live");
 const video = require("./utils/video");
-
+const control = require("./utils/controller");
 const config = require("./config");
-
-const g_data_path = config.data_path;
 
 config.web.enable ?
     server.listen(config.web.port, () => console.log("web start at " + config.web.port)) :
     console.log("web not enable");
 
 if (config.live_enable) {
-    let data = fs.readFileSync(path.join(g_data_path, "list.json"), {
-        encoding: "utf-8",
-        flag: "a+"
-    });
-    data = JSON.parse(data);
+    let data = control.File2Json("list.json");
     if (list in data)
         for (const live_id of data.list) {
             if (!live_id.enable) continue;
@@ -28,11 +19,7 @@ if (config.live_enable) {
 }
 
 if (config.video_enable) {
-    let data = fs.readFileSync(path.join(g_data_path, "video.json"), {
-        encoding: "utf-8",
-        flag: "a+"
-    });
-    data = JSON.parse(data);
+    let data = control.File2Json("cideo.json")
     if (list in data)
         for (const video_id of data.list) {
             if (!video_id.enable) continue;

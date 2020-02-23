@@ -1,14 +1,11 @@
 const db = require("../db");
-const path = require("path");
-const fs = require("fs");
-const config = require("../../config");
-const g_data_path = config.data_path;
-
+const control = require("../controller");
+let globals = require("node-global-storage");
 const {
     Room
 } = require("../Data");
 
-let live_list = {};
+
 
 /**
  * @param {Number|String} id
@@ -37,7 +34,7 @@ let live_list = {};
     }
 }}
 */
-async function getRoomData(id, init = false) {
+async function read(id, init = false) {
     let data_path = "live.db";
     let live_time_count = (await db.select(data_path, id)).result.count;
 
@@ -66,28 +63,32 @@ async function getRoomData(id, init = false) {
 
 /**
  * @param {Number} id
+ * @returns {{code:Number,msg:String}}
  */
 async function add(id) {
-    let data = await fs.readFileSync(path.join(g_data_path, 'list.json'), {
-        encoding: 'utf-8'
-    });
-    data = JSON.parse(data);
+    // get video list
+    let data = await control.File2Json("list.json");
+    // loop find id in list
     for (const item of data.list) {
-        if (item.id == id) {
+        if (item.id == id || globals.isSet("live_" + item.id)) {
             return {
                 code: -1,
                 msg: "has been added"
             };
         } else continue;
     }
+    // push id in list
     data.list.push({
         id: Number(id),
         enable: 1
     });
-    live_list[id] = new Room(id);
-    fs.writeFile(path.join(g_data_path, 'list.json'), JSON.stringify(data), {
-        encoding: 'utf-8'
-    }, err => console.log(err));
+    // then write to file
+    control.Json2File("list.json", data);
+    // put in global variables
+    globals.set("live_" + id, new Room(id), {
+        silent: true
+    });
+
     return {
         code: 0,
         msg: "sucssed"
@@ -99,28 +100,25 @@ async function add(id) {
  * @return {Void}
  */
 async function cancel(id) {
-    let data = await fs.readFileSync(path.join(g_data_path, 'list.json'), {
-        encoding: 'utf-8'
-    });
-    data = JSON.parse(data);
-    for (const item of data.list) {
-        if (item.id == id) {
-            delete item;
+    // get video list
+    let data = await control.File2Json("list.json");
+    // loop find id in list
+    for (const key in data.list) {
+        const item = data.list[key];
+        if (item.id == id && globals.isSet("live_" + item.id)) {
+            // delete it
+            await globals.get("live_" + id).cancel();
+            globals.unset("live_" + id);
+            delete key;
+            // then write to file
+            control.Json2File("list.json", data);
             return;
         } else continue;
     }
-    for (const key in live_list) {
-        if (live_list.hasOwnProperty(key) && String(key) == String(id)) {
-            live_list[key].cancel();
-        }
-    }
-    fs.writeFile(path.join(g_data_path, 'list.json'), JSON.stringify(data), {
-        encoding: 'utf-8'
-    }, err => console.log(err));
 }
 
 module.exports = {
-    getRoomData,
+    read,
     add,
     cancel
 }

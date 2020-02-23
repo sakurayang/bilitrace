@@ -71,13 +71,13 @@ app.use(_.get('/video/:id/update/:time', async (ctx, id, time) => {
 app.use(_.get('/live/:id', async (ctx, id) => {
     console.log("decate:live get")
     accept(ctx);
-    ctx.body = await live.getRoomData(id, 0);
+    ctx.body = await live.read(id, 0);
 }));
 
 app.use(_.get('/live/:id/init', async (ctx, id) => {
     console.log("decate:live init ")
     accept(ctx);
-    ctx.body = await live.getRoomData(id, 1);
+    ctx.body = await live.read(id, 1);
 }));
 
 app.use(_.get('/live/:id/living', async (ctx, id) => {

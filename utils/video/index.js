@@ -1,12 +1,8 @@
 const {
     Video
 } = require('../Data');
-const fs = require("fs");
-const path = require("path");
-const data_path = require("../../config").data_path;
-const PATH = path.join(data_path, "video.json");
-
-let task_list = {};
+const globals = require("node-global-storage");
+const control = require("../controller");
 
 /**
  * @param {Number} id
@@ -19,31 +15,31 @@ function add(id, time = "*/5 * * * *") {
             code: -1,
             msg: `id: ${id} not a number`
         };
-    } else if (typeof (time) !== "string" || /^((\*((\/[0-9]{1,2})?))[\s]){4,5}\2/ig.test(time) !== true) {
+    } else if (
+        typeof (time) !== "string" ||
+        /^((\*((\/[0-9]{1,2})?))[\s]){4,5}\2/ig.test(time) !== true
+    ) {
         return {
             code: -1,
             msg: `time: ${time} is not suit format`
         };
     }
-    let data = fs.readFileSync(PATH, {
-        encoding: 'utf-8'
-    });
-    data = JSON.parse(data);
-    let video_list = data.list;
-    for (const video of video_list) {
-        if (id === video.aid)
+
+    let data = control.File2Json("video.json");
+    for (const video of data.list) {
+        if (id === video.aid || globals.isSet("video_" + video.aid))
             return {
                 code: -1,
                 msg: `id: ${id} has been add${video.enable ? "" : " but not enable"}`
             };
     }
-    task_list[id] = new Video(id, time);
-    video_list.list.push({
+    data.list.push({
         aid: id,
         enable: 1,
         time
     });
-    fs.writeFile(PATH, JSON.stringify(video_list), err => {});
+    control.Json2File("video.json", data);
+    globals.set("video_" + id, new Video(id, time));
     return {
         code: 0,
         msg: ""
@@ -59,20 +55,18 @@ function remove(id) {
         code: -1,
         msg: `id: ${id} not a number`
     };
-    task_list[id].cancel();
-    let video_list = require(PATH);
-    for (const index in video_list.list) {
-        let video = video_list[index];
-        if (id === video.aid) {
-            video_list.splice(index, 1);
-            task_list[id].cancel();
-            delete task_list[id];
-            fs.writeFile(PATH, JSON.stringify(video_list), err => {});
+    let data = await control.File2Json("video.json");
+    for (const key in data.list) {
+        const video = data.list[key];
+        if (id === video.aid && globals.isSet("video_" + video.aid)) {
+            globals.get("video_" + id).cancel();
+            globals.unset("video_" + id);
+            delete data[key];
+            control.Json2File("video.json", data);
             return {
                 code: 0,
                 msg: ""
             };
-
         }
     }
     return {
