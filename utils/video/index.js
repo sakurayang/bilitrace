@@ -1,8 +1,12 @@
-const { VideoScheduleJob } = require('../Data');
+const {
+    Video
+} = require('../Data');
 const fs = require("fs");
 const path = require("path");
 const data_path = require("../../config").data_path;
 const PATH = path.join(data_path, "video.json");
+
+let task_list = {};
 
 /**
  * @param {Number} id
@@ -11,19 +15,35 @@ const PATH = path.join(data_path, "video.json");
  */
 function add(id, time = "*/5 * * * *") {
     if (isNaN(id)) {
-        return { code: -1, msg: `id: ${id} not a number` };
-    } else if (typeof (time) !== "string" || !(/\*\/*[0-9]* \* \*\/*[0-9]* \* \*/ig).test(time)) {
-        return { code: -1, msg: `time: ${time} is not suit format` };
+        return {
+            code: -1,
+            msg: `id: ${id} not a number`
+        };
+    } else if (typeof (time) !== "string" || /^((\*((\/[0-9]{1,2})?))[\s]){4,5}\2/ig.test() !== true) {
+        return {
+            code: -1,
+            msg: `time: ${time} is not suit format`
+        };
     }
-    new VideoScheduleJob(id, time);
     let video_list = require(PATH);
     for (const video of video_list.list) {
         if (id === video.aid)
-            return { code: -1, msg: `id: ${id} has been add${video.enable ? "" : " but not enable"}` };
+            return {
+                code: -1,
+                msg: `id: ${id} has been add${video.enable ? "" : " but not enable"}`
+            };
     }
-    video_list.list.push({ aid: id, enable: 1, time });
-    fs.writeFile(PATH, JSON.stringify(video_list), err => { });
-    return { code: 0, msg: "" };
+    task_list[id] = new Video(id, time);
+    video_list.list.push({
+        aid: id,
+        enable: 1,
+        time
+    });
+    fs.writeFile(PATH, JSON.stringify(video_list), err => {});
+    return {
+        code: 0,
+        msg: ""
+    };
 }
 
 /**
@@ -32,18 +52,30 @@ function add(id, time = "*/5 * * * *") {
  */
 function remove(id) {
     let Jobs = require("node-schedule").scheduledJobs;
-    if (isNaN(id)) return { code: -1, msg: `id: ${id} not a number` };
+    if (isNaN(id)) return {
+        code: -1,
+        msg: `id: ${id} not a number`
+    };
     Jobs[`video_${String(id)}`].cancel();
     let video_list = require(PATH);
     for (const index in video_list.list) {
         let video = video_list[index];
         if (id === video.aid) {
             video_list.splice(index, 1);
-            fs.writeFile(PATH, JSON.stringify(video_list), err => { });
-            return { code: 0, msg: "" };
+            task_list[id].cancel();
+            delete task_list[id];
+            fs.writeFile(PATH, JSON.stringify(video_list), err => {});
+            return {
+                code: 0,
+                msg: ""
+            };
+
         }
     }
-    return { code: -1, msg: `id: ${id} not found` };
+    return {
+        code: -1,
+        msg: `id: ${id} not found`
+    };
 }
 
 /**
@@ -53,11 +85,17 @@ function remove(id) {
  */
 async function update(id, time = "*/5 * * * *") {
     try {
-        await remove(ctx, id, type);
-        await add(ctx, id, type, time);
-        return { code: 0, msg: "" };
+        await remove(id);
+        await add(id, time);
+        return {
+            code: 0,
+            msg: ""
+        };
     } catch (error) {
-        return { code: -1, msg: error };
+        return {
+            code: -1,
+            msg: error
+        };
     }
 }
 
@@ -71,9 +109,9 @@ async function read(id, init = false) {
     try {
         let result;
         if (init) {
-            result = await db.selectAll(path.join(data_path, "video.db"), id).result;
+            result = (await db.selectAll(path.join(data_path, "video.db"), id)).result;
         } else {
-            result = await db.select(path.join(data_path, "video.db"), id);
+            result = (await db.select(path.join(data_path, "video.db"), id)).result;
         }
         return {
             code: 0,
