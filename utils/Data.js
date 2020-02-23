@@ -1,7 +1,6 @@
 const request = require('request-promise-native');
 const schedule = require('node-schedule');
 const fs = require("fs");
-const path = require("path");
 const ws = require('ws');
 const parser = require("./live/parser");
 const db = require("./db");
