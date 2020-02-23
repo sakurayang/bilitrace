@@ -1,4 +1,3 @@
-//TODO 整理输出
 const request = require('request-promise-native');
 const schedule = require('node-schedule');
 const fs = require("fs");
@@ -589,7 +588,7 @@ class Room {
         });
         this.socket.on('message', data => this.onMessage(data));
     }
-    async closeSocket() {
+    closeSocket() {
         clearInterval(this.socketInterval);
         this.socket.close();
     }
@@ -628,6 +627,15 @@ class Room {
             db_live_count + 1 :
             db_live_count;
     }
+    remove() {
+        this.closeSocket();
+        clearInterval(this.monitorInterval);
+    }
+}
+
+//TODO: 增加功能
+class User {
+
 }
 
 module.exports = {
