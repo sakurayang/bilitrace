@@ -1,4 +1,5 @@
 const path = require("path");
+const fs = require("fs");
 const config = require("../config");
 const g_data_path = config.data_path;
 
@@ -9,7 +10,7 @@ const g_data_path = config.data_path;
 async function File2Json(file) {
     let data = await fs.readFileSync(path.join(g_data_path, file), {
         encoding: 'utf-8',
-        flag: "a+"
+        flag: "r"
     });
     data = JSON.parse(data);
     return data;
@@ -23,7 +24,7 @@ async function File2Json(file) {
 function Json2File(file, data) {
     fs.writeFile(path.join(g_data_path, file), JSON.stringify(data), {
         encoding: 'utf-8',
-        flag: "a+"
+        flag: "w"
     }, err => console.log(err));
 }
 
