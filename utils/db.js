@@ -1,7 +1,7 @@
 //[x]TODO 适配video与rank
 const config = require("../config");
 const path = require("path");
-const PATH = config.data_path;
+const g_data_path = config.data_path;
 
 function parseObject(obj) {
     let keys = Object.keys(obj);
@@ -29,11 +29,11 @@ function parseObject(obj) {
  * @return {JSON}
  */
 async function select(filename, table, params = []) {
-    let DB = require('better-sqlite3')(path.join(PATH, filename));
+    let DB = require('better-sqlite3')(path.join(g_data_path, filename));
     try {
         let last_num = await getCount(filename, table, params);
         let result = await DB.prepare(`SELECT * FROM "${table}"` +
-            `${Object.keys(params).length == 0 ? ' ' : 'WHERE ' + parseObject(params).string}` +
+            `${Object.keys(params).length == 0 ? ' ' : "WHERE " + parseObject(params).string}` +
             `LIMIT 1 OFFSET ${last_num - 1}`).get();
         return {
             code: 0,
@@ -48,10 +48,10 @@ async function select(filename, table, params = []) {
     }
 }
 async function getCount(filename, table, params = []) {
-    let DB = require('better-sqlite3')(path.normalize(`${PATH}/${filename}`));
+    let DB = require('better-sqlite3')(path.join(g_data_path, filename));
     try {
         let count = await DB.prepare(`SELECT count(*) FROM "${table}"` +
-            `${Object.keys(params).length == 0 ? ' ' : 'WHERE ' + parseObject(params).string}`).get()['count(*)'];
+            `${Object.keys(params).length == 0 ? ' ' : "WHERE " + parseObject(params).string}`).get()['count(*)'];
         return count;
     } catch (error) {
         return {
@@ -70,7 +70,7 @@ async function getCount(filename, table, params = []) {
     result: Array<JSON>}}
  */
 async function selectAll(filename, table, params = [], limit = 0, offset = 0) {
-    let DB = require('better-sqlite3')(path.normalize(`${PATH}/${filename}`));
+    let DB = require('better-sqlite3')(path.join(g_data_path, filename));
     try {
         let result = [];
         let count = await getCount(filename, table);
@@ -81,7 +81,7 @@ async function selectAll(filename, table, params = [], limit = 0, offset = 0) {
             if (i > count - offset - 1) break;
             //console.log(i, parseObject(where).string);
             let db_data = await DB.prepare(`SELECT * FROM "${table}"` +
-                `${Object.keys(params).length == 0 ? ' ' : 'WHERE ' + parseObject(params).string}` +
+                `${Object.keys(params).length == 0 ? ' ' : "WHERE " + parseObject(params).string}` +
                 ` LIMIT 1 OFFSET ${offset + i}`).get();
             result.push(db_data);
         }
@@ -105,7 +105,7 @@ async function selectAll(filename, table, params = [], limit = 0, offset = 0) {
  * @param {JSON} values
  */
 async function insert(filename, table, values) {
-    let DB = require('better-sqlite3')(path.normalize(`${PATH}/${filename}`));
+    let DB = require('better-sqlite3')(path.join(g_data_path, filename));
     //console.log(parseObject(values).keys.toString())
     //console.log(parseObject(values).values.toString())
     //console.log(values);
@@ -116,6 +116,7 @@ async function insert(filename, table, values) {
             msg: ""
         }
     } catch (error) {
+        console.log(error);
         return {
             code: -1,
             msg: error
@@ -137,7 +138,7 @@ async function insert(filename, table, values) {
     }} params
  */
 function delect(filename, table, params) {
-    let DB = require('better-sqlite3')(path.normalize(`${PATH}/${filename}`));
+    let DB = require('better-sqlite3')(path.join(g_data_path, filename));
     try {
         DB.prepare(`DELETE FROM "${table}" WHERE ${parseObject(params).string}`).run();
         return {
@@ -161,9 +162,9 @@ function delect(filename, table, params) {
  * @param {JSON} values new value
  */
 function update(filename, table, params, values) {
-    let DB = require('better-sqlite3')(path.normalize(`${PATH}/${filename}`));
+    let DB = require('better-sqlite3')(path.join(g_data_path, filename));
     try {
-        DB.prepare(`UPDATE ${table} SET ${parseObject(values).string} WHERE ${parseObject(params).string}`).run();
+        DB.prepare(`UPDATE ${table} SET '${parseObject(values).string}' WHERE ${parseObject(params).string}'`).run();
         return {
             code: 0,
             msg: ""

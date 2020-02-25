@@ -4,7 +4,9 @@ const fs = require("fs");
 const ws = require('ws');
 const parser = require("./live/parser");
 const db = require("./db");
-
+const path = require("path");
+const config = require("../config");
+const g_data_path = config.data_path;
 var prev_job_time = Date.now();
 
 /**
@@ -29,8 +31,8 @@ class Video {
         this.id = Number(id);
         this.schedule_time = time;
         this.data_path = "video.db";
-        this.init();
-        this.job = createScheudle(String(this.id), this.schedule_time, async () => {
+        (async () => await this.init())();
+        this.job = schedule.scheduleJob(String(this.id), this.schedule_time, async () => {
             while (Date.now() - prev_job_time < 100) {
                 ;
             }
@@ -39,16 +41,17 @@ class Video {
             if (info.code !== 0) return;
             this.write(info.result);
         });
-        this.job.invoke();
+        console.log(`Video ${this.id} add`);
         return this;
     }
 
     async init() {
-        await require('better-sqlite3')(this.data_path)
+        await require('better-sqlite3')(path.join(g_data_path, this.data_path))
             .prepare(`CREATE TABLE IF NOT EXISTS "${this.id}" ` +
                 "(id           integer  primary key  AUTOINCREMENT not null," +
                 " aid          integer  not null," +
                 " title        text     not null," +
+                " view         integer  not null," +
                 " coin         integer  not null," +
                 " danma        integer  not null," +
                 " favorite     integer  not null," +
@@ -89,7 +92,7 @@ class Video {
                 msg: "",
                 result: {
                     aid: raw_data.aid,
-                    title: raw_data.title,
+                    title: `"${raw_data.title}"`,
                     view: stat.view,
                     coin: stat.coin,
                     danma: stat.danmaku,
@@ -115,6 +118,7 @@ class Video {
      * @returns {Null}
      */
     write(write_data) {
+        console.table(write_data);
         db.insert(this.data_path, this.id, write_data);
     }
 
@@ -155,7 +159,7 @@ class Rank {
         this.schedule_time = time;
         this.data_path = "rank.db";
         this.interval = interval;
-        this.init();
+        (async () => await this.init())();
         this.job = createScheudle(String(this.id), this.schedule_time, async () => {
             while (Date.now() - prev_job_time < 100) {
                 ;
@@ -168,12 +172,12 @@ class Rank {
             }
 
         });
-        this.job.invoke();
+
         return this;
     }
 
     async init() {
-        await require('better-sqlite3')(this.data_path)
+        await require('better-sqlite3')(path.join(g_data_path, this.data_path))
             .prepare(`CREATE TABLE IF NOT EXISTS "${this.id}" ` +
                 "(count        integer   not null," +
                 " aid          integer   not null," +
@@ -221,11 +225,11 @@ class Rank {
                     aid: video.aid,
                     rank: rank + 1,
                     point: video.pts,
-                    title: video.title,
+                    title: `"${video.title}"`,
                     tid: this.spider_id,
-                    tname: video.typename,
+                    tname: `"${video.typename}"`,
                     author_mid: video.mid,
-                    author_name: video.author,
+                    author_name: `"${video.author}"`,
                     update_time: Date.now(),
                     public_time: video.create
                 });
@@ -290,19 +294,19 @@ class Room {
     constructor(id) {
         if (isNaN(id)) return new Error("error ID");
         this.id = id;
-        this.init();
+        (async () => await this.init())();
         this.data_path = "live.db";
         return this;
     }
     async init() {
-        await require('better-sqlite3')(this.data_path)
+        await require('better-sqlite3')(path.join(g_data_path, this.data_path))
             .prepare(`CREATE TABLE IF NOT EXISTS "${this.id}" ` +
                 "(count        integer  not null," +
                 " update_time  integer  not null," +
                 " time         integer  not null," +
                 " views        integer  not null)"
             ).run();
-        await require('better-sqlite3')(this.data_path)
+        await require('better-sqlite3')(path.join(g_data_path, this.data_path))
             .prepare(`CREATE TABLE IF NOT EXISTS "${this.id}_gift" ` +
                 "(id           integer  primary key  AUTOINCREMENT not null," +
                 " count        integer  not null," +
@@ -319,6 +323,7 @@ class Room {
         this.last_status = 0;
         this.danmu_conf = await this.getDanmuURL();
         await this.setTimer();
+        console.log(`Room ${this.id} add`)
     }
     async isLiving() {
         let info = await request.get(`https://api.live.bilibili.com/room/v1/Room/room_init?id=${this.id}`);
@@ -484,7 +489,7 @@ class Room {
                     "type": 2,
                     "key": this.danmu.token
                 });
-                console.log(data);
+                //console.log(data);
                 body = Buffer.from(data);
                 let length = body.length + 16
                 head = Buffer.from([0, 0, 0, length, 0, 16, 0, 1, 0, 0, 0, 7, 0, 0, 0, 1]);
