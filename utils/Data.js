@@ -25,7 +25,6 @@ function createScheudle(name, time, func = () => {}) {
     }
 }
 
-//TODO: 测试
 class Video {
     constructor(id, time = "*/5 * * * *") {
         this.id = Number(id);
@@ -294,8 +293,8 @@ class Room {
     constructor(id) {
         if (isNaN(id)) return new Error("error ID");
         this.id = id;
-        (async () => await this.init())();
         this.data_path = "live.db";
+        (async () => await this.init())();
         return this;
     }
     async init() {
@@ -510,11 +509,11 @@ class Room {
         return 1E15 + Math.floor(2E15 * Math.random())
     }
     onMessage(data) {
-        fs.writeFile('./ws.log', JSON.stringify(Buffer.from(data)) + '\n', {
+        fs.writeFile(path.join(g_data_path, 'ws.log'), JSON.stringify(Buffer.from(data)) + '\n', {
             flag: 'a+'
         }, err => {});
         let parsed = parser.packet(data);
-        fs.writeFile('./pasred.log', JSON.stringify(parsed) + '\n', {
+        fs.writeFile(path.join(g_data_path, 'pasred.log'), JSON.stringify(parsed) + '\n', {
             flag: 'a+'
         }, err => {});
 
@@ -574,18 +573,13 @@ class Room {
         this.socket = new ws(`wss://${this.danmu_conf.host}/sub`);
         this.socket.on('open', () => {
             this.socket.send(this.getPacket('hello'));
-            this.socket.send(this.getPacket('heart'));
+            //this.socket.send(this.getPacket('heart'));
         });
         this.socketInterval = setInterval(() => {
             this.socket.send(this.getPacket('heart'))
         }, 5000);
         this.socket.on('ping', () => {
             this.socket.send(this.getPacket('heart'));
-        });
-        this.socket.on('pong', data => {
-            fs.writeFile('./log', JSON.stringify(Buffer.from(data)) + '\n', {
-                flag: 'a+'
-            }, err => {});
         });
         this.socket.on('message', data => this.onMessage(data));
     }
@@ -618,8 +612,8 @@ class Room {
         this.room_info = await this.getRoomInfo();
         this.last_status = this.live_status || 0;
         this.live_status = await this.isLiving();
-        let database_count = await db.getCount(this.database, this.id) || 1;
-        let last_data = await db.selectAll(this.database, this.id, ['count >= 0'], 1, database_count - 1);
+        let database_count = await db.getCount(this.data_path, this.id) || 1;
+        let last_data = await db.selectAll(this.data_path, this.id, ['count >= 0'], 1, database_count - 1);
         let db_live_count = last_data.result.length === 0 ? 0 : last_data.result[0].count;
         let last_live_time = last_data.result.length === 0 ? this.room_info.room.start_time : last_data.result[0].time;
         this.live_counter = this.live_status ?
@@ -628,9 +622,13 @@ class Room {
             db_live_count + 1 :
             db_live_count;
     }
-    remove() {
-        this.closeSocket();
-        clearInterval(this.monitorInterval);
+    cancel() {
+        try {
+            this.closeSocket();
+            clearInterval(this.monitorInterval);
+        } catch (error) {
+            console.log(error);
+        }
     }
 }
 

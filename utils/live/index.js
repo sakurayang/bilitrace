@@ -66,16 +66,22 @@ async function read(id, init = false) {
  * @returns {{code:Number,msg:String}}
  */
 async function add(id) {
+    if (isNaN(id)) {
+        return {
+            code: -1,
+            msg: `id: ${id} not a number`
+        };
+    }
     // get video list
-    let data = await control.File2Json("list.json");
+    let data = await control.File2Json("live.json");
     // loop find id in list
-    for (const item of data.list) {
-        if (item.id == id || globals.isSet("live_" + item.id)) {
+    for (const live of data.list) {
+        if (live.id === id && globals.isSet("live_" + live.id)) {
             return {
                 code: -1,
-                msg: "has been added"
+                msg: `id: ${id} has been add${live.enable ? "" : " but not enable"}`
             };
-        } else continue;
+        };
     }
     // push id in list
     data.list.push({
@@ -83,15 +89,13 @@ async function add(id) {
         enable: 1
     });
     // then write to file
-    control.Json2File("list.json", data);
+    control.Json2File("live.json", data);
     // put in global variables
-    globals.set("live_" + id, new Room(id), {
-        silent: true
-    });
-
+    let room = new Room(id);
+    globals.set("live_" + id, room);
     return {
         code: 0,
-        msg: "sucssed"
+        msg: ""
     }
 }
 
@@ -100,21 +104,29 @@ async function add(id) {
  * @return {Void}
  */
 async function cancel(id) {
+    if (isNaN(id)) return {
+        code: -1,
+        msg: `id: ${id} not a number`
+    };
     // get video list
-    let data = await control.File2Json("list.json");
+    let data = await control.File2Json("live.json");
     // loop find id in list
     for (const key in data.list) {
-        const item = data.list[key];
-        if (item.id == id && globals.isSet("live_" + item.id)) {
+        const live = data.list[key];
+        if (live.id === id && globals.isSet("live_" + live.id)) {
             // delete it
-            await globals.get("live_" + id).cancel();
+            globals.get("live_" + id).cancel();
             globals.unset("live_" + id);
-            delete key;
+            data.list.splice(key, 1);
             // then write to file
-            control.Json2File("list.json", data);
+            control.Json2File("live.json", data);
             return;
-        } else continue;
+        };
     }
+    return {
+        code: -1,
+        msg: `id: ${id} not found`
+    };
 }
 
 module.exports = {
