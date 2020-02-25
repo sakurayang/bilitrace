@@ -10,7 +10,7 @@ star.js
 *.db
 gift.json
 video.json
-list.json
+live.json
 # Logs
 logs
 log
