@@ -9,7 +9,7 @@ const control = require("../controller");
  * @param {String} time cron job format 
  * @returns {{code:Number,msg:String}}
  */
-function add(id, time = "*/5 * * * *") {
+async function add(id, time = "*/5 * * * *") {
     if (isNaN(id)) {
         return {
             code: -1,
@@ -25,9 +25,9 @@ function add(id, time = "*/5 * * * *") {
         };
     }
 
-    let data = control.File2Json("video.json");
+    let data = await control.File2Json("video.json");
     for (const video of data.list) {
-        if (id === video.aid || globals.isSet("video_" + video.aid))
+        if (id === video.aid && globals.isSet("video_" + video.aid))
             return {
                 code: -1,
                 msg: `id: ${id} has been add${video.enable ? "" : " but not enable"}`
@@ -39,7 +39,8 @@ function add(id, time = "*/5 * * * *") {
         time
     });
     control.Json2File("video.json", data);
-    globals.set("video_" + id, new Video(id, time));
+    let video = new Video(id, time);
+    globals.set("video_" + id, video);
     return {
         code: 0,
         msg: ""
@@ -50,7 +51,7 @@ function add(id, time = "*/5 * * * *") {
  * @param {Number} id
  * @returns {{code:Number,msg:String}}
  */
-function remove(id) {
+async function remove(id) {
     if (isNaN(id)) return {
         code: -1,
         msg: `id: ${id} not a number`
@@ -61,7 +62,8 @@ function remove(id) {
         if (id === video.aid && globals.isSet("video_" + video.aid)) {
             globals.get("video_" + id).cancel();
             globals.unset("video_" + id);
-            delete data[key];
+            data.list.splice(key, 1);
+            delete data.list[key];
             control.Json2File("video.json", data);
             return {
                 code: 0,
@@ -110,6 +112,7 @@ async function read(id, init = false) {
         } else {
             result = (await db.select("video.db", id)).result;
         }
+        //console.log(result);
         return {
             code: 0,
             msg: "",
