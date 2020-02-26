@@ -8,6 +8,7 @@ const path = require("path");
 const config = require("../config");
 const g_data_path = config.data_path;
 var prev_job_time = Date.now();
+const globals = require("node-global-storage");
 
 /**
  * 
@@ -117,7 +118,6 @@ class Video {
      * @returns {Null}
      */
     write(write_data) {
-        console.table(write_data);
         db.insert(this.data_path, this.id, write_data);
     }
 
@@ -128,9 +128,9 @@ class Video {
         try {
             let data;
             if (init) {
-                data = await db.selectAll(this.data_path, this.data_id);
+                data = await db.selectAll(this.data_path, this.id);
             } else {
-                data = await db.select(this.data_path, this.data_id);
+                data = await db.select(this.data_path, this.id);
             }
             return {
                 code: 0,
@@ -152,6 +152,7 @@ class Video {
 }
 
 //TODO: 测试
+//暂时没用
 class Rank {
     constructor(id, interval = 3, time = "* * */3 * *") {
         this.id = Number(id);
@@ -285,6 +286,7 @@ class Rank {
 
 }
 
+//TODO: 分离watcher
 class Room {
     /**
      * @param {Number} id
@@ -634,11 +636,116 @@ class Room {
 
 //TODO: 增加功能
 class User {
+    /**
+     * @param {Number} id
+     */
+    constructor(id, time = "*/10 * * * *") {
+        this.id = Number(id);
+        this.api = {
+            base: "https://api.bilibili.com/x/relation/stat?vmid=" + this.id,
+            up: "https://api.bilibili.com/x/space/upstat?mid=" + this.id,
+            video: "https://api.bilibili.com/x/space/arc/search?pn=1&ps=1&order=pubdate&mid=" + this.id
+        };
+        this.schedule_time = time;
+        this.data_path = "user.db";
+        (async () => await this.init())();
+        this.job = schedule.scheduleJob(String(this.id), this.schedule_time, async () => {
+            while (Date.now() - prev_job_time < 100) {
+                ;
+            }
+            prev_job_time = Date.now();
+            let info = await this.getInfo();
+            if (info.code !== 0) return;
+            this.write(item);
+        });
+        return this;
+    }
+    async init() {
+        await require('better-sqlite3')(path.join(g_data_path, this.data_path))
+            .prepare(`CREATE TABLE IF NOT EXISTS "${this.id}" ` +
+                "(id           integer  primary key  AUTOINCREMENT not null," +
+                " aid          integer  not null," +
+                " title        text     not null," +
+                " public_time  integer  not null," +
+                " update_time  integer  not null)"
+            ).run();
+    }
+
+    /**
+     * @param {"video"|"base"|"up"}
+     * @returns {{
+        code:Number,
+        msg:String,
+        result:JSON
+    }}
+     */
+    async getInfo(type = "video") {
+        try {
+            let raw_data = JSON.parse(await request.get(this.api[type])).data;
+            return {
+                code: 0,
+                msg: "",
+                result: {
+                    aid: raw_data.list.vlist[0].aid,
+                    title: `"${raw_data.list.vlist[0].title}"`,
+                    public_time: raw_data.list.vlist[0].created,
+                    update_time: Date.now()
+                }
+            }
+        } catch (error) {
+            console.log(error);
+            return {
+                code: -1,
+                msg: error
+            }
+        }
+    }
+
+    /**
+     * @param {JSON} write_data
+     * @returns {Null}
+     */
+    async write(write_data) {
+        let data = await db.select(this.data_path, this.id);
+        if (data.aid === write_data.aid) return;
+        require("./video").add(this.id);
+        db.insert(this.data_path, this.id, write_data);
+        return;
+    }
+
+    /** 
+     * @returns {{code:Number,msg:String,result:Array<JSON>}}
+     */
+    async read(init = false) {
+        try {
+            let data;
+            if (init) {
+                data = await db.selectAll(this.data_path, this.id);
+            } else {
+                data = await db.select(this.data_path, this.id);
+            }
+            return {
+                code: 0,
+                msg: "",
+                result: data
+            }
+        } catch (error) {
+            return {
+                code: -1,
+                msg: error
+            }
+        }
+    }
+
+    cancel() {
+        if (this.job instanceof schedule.Job) this.job.cancel();
+    }
 
 }
 
 module.exports = {
     Video,
     Rank,
-    Room
+    Room,
+    User
 }

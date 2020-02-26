@@ -33,8 +33,8 @@ async function select(filename, table, params = []) {
     try {
         let last_num = await getCount(filename, table, params);
         let result = await DB.prepare(`SELECT * FROM "${table}"` +
-            `${Object.keys(params).length == 0 ? ' ' : "WHERE " + parseObject(params).string}` +
-            `LIMIT 1 OFFSET ${last_num - 1}`).get();
+            `${Object.keys(params).length == 0 ? ' ' : "WHERE " + parseObject(params).string}` + " " +
+            ` LIMIT 1 OFFSET ${last_num - 1}`).get();
         return {
             code: 0,
             msg: "",
@@ -81,7 +81,7 @@ async function selectAll(filename, table, params = [], limit = 0, offset = 0) {
             if (i > count - offset - 1) break;
             //console.log(i, parseObject(where).string);
             let db_data = await DB.prepare(`SELECT * FROM "${table}"` +
-                `${Object.keys(params).length == 0 ? ' ' : "WHERE " + parseObject(params).string}` +
+                `${Object.keys(params).length == 0 ? ' ' : "WHERE " + parseObject(params).string} ` + " " +
                 ` LIMIT 1 OFFSET ${offset + i}`).get();
             result.push(db_data);
         }
