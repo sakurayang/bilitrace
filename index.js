@@ -23,7 +23,7 @@ config.web.enable ?
         if ("list" in data)
             for (const video_id of data.list) {
                 if (!video_id.enable) continue;
-                video.add(video_id.aid, video_id.time);
+                video.add(video_id.id, video_id.time);
             }
     }
     if (config.user_enable) {
@@ -31,7 +31,7 @@ config.web.enable ?
         if ("list" in data)
             for (const user_id of data.list) {
                 if (!user_id.enable) continue;
-                user.add(user_id.aid, user_id.time);
+                user.add(user_id.id, user_id.time);
             }
     }
 })();

@@ -712,7 +712,7 @@ class User {
      */
     async write(write_data) {
         let data = await db.select(this.data_path, this.id);
-        if (data.aid === write_data.aid) return;
+        if (data.id === write_data.aid) return;
         require("./video").add(this.id);
         db.insert(this.data_path, this.id, write_data);
         return;

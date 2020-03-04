@@ -39,18 +39,17 @@ async function add(id, time = "*/5 * * * *") {
     }
 
     let data = await control.File2Json("user.json");
-    let id_array = [];
-    for (const live of data.list) {
-        id_array.push(live.id);
-        if (globals.isSet("live_" + live.id)) {
+    for (const user of data.list) {
+        if (globals.isSet("user_" + user.id)) {
             return {
                 code: -1,
-                msg: `id: ${id} has been add${live.enable ? "" : " but not enable"}`
+                msg: `id: ${id} has been add${user.enable ? "" : " but not enable"}`
             };
         };
     }
     // push id in list
-    if (!(id in id_array)) {
+    let id_array = data.list.map(el => el.id);
+    if (id_array.indexOf(id) === -1) {
         data.list.push({
             id: Number(id),
             enable: 1

@@ -75,9 +75,7 @@ async function add(id) {
     // get video list
     let data = await control.File2Json("live.json");
     // loop find id in list
-    let id_array = [];
     for (const live of data.list) {
-        id_array.push(live.id);
         if (globals.isSet("live_" + live.id)) {
             return {
                 code: -1,
@@ -86,7 +84,8 @@ async function add(id) {
         };
     }
     // push id in list
-    if (!(id in id_array)) {
+    let id_array = data.list.map(el => el.id);
+    if (id_array.indexOf(id) === -1) {
         data.list.push({
             id: Number(id),
             enable: 1
