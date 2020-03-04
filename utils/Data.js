@@ -39,6 +39,10 @@ class Video {
             prev_job_time = Date.now();
             let info = await this.getInfo();
             if (info.code !== 0) return;
+            // 10d * 24hr * 60m * 60s * 1000ms = 864000000
+            if (Date.now() - info.result.public_time * 1000 > 864000000) {
+                this.cancel();
+            }
             this.write(info.result);
         });
         console.log(`Video ${this.id} add`);
@@ -147,6 +151,7 @@ class Video {
 
     cancel() {
         if (this.job instanceof schedule.Job) this.job.cancel();
+        globals.unset("video_" + this.id);
     }
 
 }
