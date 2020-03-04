@@ -5,6 +5,8 @@ const video = require("./utils/video");
 const live = require("./utils/live");
 const request = require("request-promise-native");
 
+let globals = require("node-global-storage");
+
 const app = new koa();
 
 const accept = ctx => {
@@ -183,6 +185,18 @@ app.use(_.get('/live/remove', ctx => {
         code: -1,
         msg: "id error"
     }
+}));
+
+app.use(_.get('/live/status', async ctx => {
+    accept(ctx);
+    let query = ctx.query;
+    if (globals.isSet("live_" + query.id)) {
+        console.log("cache exist");
+        ctx.body = globals.get("live_" + query.id).last_status;
+        return;
+    }
+    console.log("cache unset")
+    ctx.body = (JSON.parse(await request(`https://api.live.bilibili.com/room/v1/Room/room_init?id=${query.id}`))).data.live_status;
 }));
 
 // ============end live route=============
