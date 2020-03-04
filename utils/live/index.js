@@ -75,8 +75,10 @@ async function add(id) {
     // get video list
     let data = await control.File2Json("live.json");
     // loop find id in list
+    let id_array = [];
     for (const live of data.list) {
-        if (live.id === id && globals.isSet("live_" + live.id)) {
+        id_array.push(live.id);
+        if (globals.isSet("live_" + live.id)) {
             return {
                 code: -1,
                 msg: `id: ${id} has been add${live.enable ? "" : " but not enable"}`
@@ -84,10 +86,12 @@ async function add(id) {
         };
     }
     // push id in list
-    data.list.push({
-        id: Number(id),
-        enable: 1
-    });
+    if (!(id in id_array)) {
+        data.list.push({
+            id: Number(id),
+            enable: 1
+        });
+    }
     // then write to file
     control.Json2File("live.json", data);
     // put in global variables

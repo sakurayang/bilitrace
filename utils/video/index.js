@@ -26,18 +26,23 @@ async function add(id, time = "*/5 * * * *") {
     }
 
     let data = await control.File2Json("video.json");
-    for (const video of data.list) {
-        if (id === video.aid && globals.isSet("video_" + video.aid))
+    let id_array = [];
+    for (const live of data.list) {
+        id_array.push(live.id);
+        if (globals.isSet("live_" + live.id)) {
             return {
                 code: -1,
-                msg: `id: ${id} has been add${video.enable ? "" : " but not enable"}`
+                msg: `id: ${id} has been add${live.enable ? "" : " but not enable"}`
             };
+        };
     }
-    data.list.push({
-        aid: id,
-        enable: 1,
-        time
-    });
+    // push id in list
+    if (!(id in id_array)) {
+        data.list.push({
+            id: Number(id),
+            enable: 1
+        });
+    }
     control.Json2File("video.json", data);
     let video = new Video(id, time);
     globals.set("video_" + id, video);
