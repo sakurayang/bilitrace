@@ -12,7 +12,11 @@ const app = new koa();
 const accept = ctx => {
     ctx.status = 200;
     ctx.set({
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+		"Access-Control-Allow-Origin": "*",
+		"Access-Control-Allow-Credentials": true,
+		"Access-Control-Allow-Methods": "GET,OPTIONS",
+		"Access-Control-Allow-Headers": "cache-control,content-type,hash-referer,x-requested-with"
     });
 };
 const refuse = ctx => ctx.status = 403;
