@@ -4,6 +4,7 @@
     "description": "null",
     "main": "index.js",
     "dependencies": {
+        "@koa/cors": "^3.0.0",
         "better-sqlite3": "^5.4.3",
         "koa": "^2.11.0",
         "koa-route": "^3.2.0",

@@ -4,6 +4,7 @@ const _ = require('koa-route');
 const video = require("./utils/video");
 const live = require("./utils/live");
 const request = require("request-promise-native");
+const cors = require('@koa/cors');
 
 let globals = require("node-global-storage");
 
@@ -21,6 +22,7 @@ const accept = ctx => {
 };
 const refuse = ctx => ctx.status = 403;
 
+app.use(cors());
 app.use(_.get('/', ctx => refuse(ctx)));
 app.use(_.get('/video', ctx => {
     accept(ctx);
