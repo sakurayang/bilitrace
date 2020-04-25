@@ -1,5 +1,5 @@
 let zlib = require("zlib");
-
+const fs = require("fs");
 function parsePacket(packet) {
     if (!Buffer.isBuffer(packet)) return { code: -1, msg: "not a buffer" };
     packet = Buffer.from(packet);
@@ -102,6 +102,7 @@ function parseBody(operation, protocol, body) {
             break;
         }
     }
+    
     return msg;
 }
 function parseNotify(body) {
@@ -184,8 +185,9 @@ function parseNotify(body) {
      * }
      * 
      */
+    let r_data = [];
     if (cmd.startsWith("DANMU_MSG")) {
-        return {
+        r_data = {
             code: 0,
             msg: "",
             type: "danmu",
@@ -206,7 +208,7 @@ function parseNotify(body) {
         }
     } else if (cmd.startsWith("SEND_GIFT")) {
         let data = body.data;
-        return {
+        r_data = {
             code: 0,
             msg: "",
             type: "gift",
@@ -223,7 +225,7 @@ function parseNotify(body) {
         }
     } else if (cmd.startsWith("GUARD_BUY")) {
         let data = body.data;
-        return {
+        r_data = {
             code: 0,
             msg: "",
             type: "guard_buy",
@@ -246,7 +248,7 @@ function parseNotify(body) {
         }
     } else if (cmd.startsWith("SUPER_CHAT_MESSAGE")) {
         let data = body.data;
-        return {
+        r_data = {
             code: 0,
             msg: "",
             type: "super_chat",
@@ -276,13 +278,15 @@ function parseNotify(body) {
             }
         }
     } else {
-        return {
+        r_data = {
             code: 0,
             msg: "",
             type: "other",
             data: body
         }
     }
+    fs.writeFile("./parse.log",JSON.stringify(r_data)+",\n",{flag:"a+"},err=>console.log(err));
+    return r_data;
 }
 
 module.exports = {
