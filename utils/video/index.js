@@ -1,55 +1,55 @@
-const {
-    Video
-} = require('../Data');
+const { Video } = require("../Data");
 const globals = require("node-global-storage");
 const control = require("../controller");
 
 /**
  * @param {Number} id
- * @param {String} time cron job format 
+ * @param {String} time cron job format
  * @returns {{code:Number,msg:String}}
  */
 async function add(id, time = "*/5 * * * *") {
-    if (isNaN(id)) {
-        return {
-            code: -1,
-            msg: `id: ${id} not a number`
-        };
-    } else if (
-        typeof (time) !== "string" ||
-        /^((\*((\/[0-9]{1,2})?))[\s]){4,5}\2/ig.test(time) !== true
-    ) {
-        return {
-            code: -1,
-            msg: `time: ${time} is not suit format`
-        };
-    }
+	if (isNaN(id)) {
+		return {
+			code: -1,
+			msg: `id: ${id} not a number`,
+		};
+	} else if (
+		typeof time !== "string" ||
+		/^((\*((\/[0-9]{1,2})?))[\s]){4,5}\2/gi.test(time) !== true
+	) {
+		return {
+			code: -1,
+			msg: `time: ${time} is not suit format`,
+		};
+	}
 
-    let data = await control.File2Json("video.json");
-    let id_array = data.list.map(el => el.id);
-    if (id_array.indexOf(id) === -1) {
-        data.list.push({
-            id: Number(id),
-            enable: 1
-        });
-    }
-    for (const video of data.list) {
-        if (globals.isSet("video_" + video.id)) {
-            return {
-                code: -1,
-                msg: `id: ${id} has been add${video.enable ? "" : " but not enable"}`
-            };
-        };
-    }
-    // push id in list
+	let data = await control.File2Json("video.json");
+	let id_array = data.list.map(el => el.id);
+	if (id_array.indexOf(id) === -1) {
+		data.list.push({
+			id: Number(id),
+			enable: 1,
+		});
+	}
+	for (const video of data.list) {
+		if (globals.isSet("video_" + video.id)) {
+			return {
+				code: -1,
+				msg: `id: ${id} has been add${
+					video.enable ? "" : " but not enable"
+				}`,
+			};
+		}
+	}
+	// push id in list
 
-    control.Json2File("video.json", data);
-    let video = new Video(id, time);
-    globals.set("video_" + id, video);
-    return {
-        code: 0,
-        msg: ""
-    };
+	control.Json2File("video.json", data);
+	let video = new Video(id, time);
+	globals.set("video_" + id, video);
+	return {
+		code: 0,
+		msg: "",
+	};
 }
 
 /**
@@ -57,83 +57,102 @@ async function add(id, time = "*/5 * * * *") {
  * @returns {{code:Number,msg:String}}
  */
 async function remove(id) {
-    if (isNaN(id)) return {
-        code: -1,
-        msg: `id: ${id} not a number`
-    };
-    let data = await control.File2Json("video.json");
-    for (const key in data.list) {
-        const video = data.list[key];
-        if (id === video.id && globals.isSet("video_" + video.id)) {
-            globals.get("video_" + id).cancel();
-            globals.unset("video_" + id);
-            data.list.splice(key, 1);
-            delete data.list[key];
-            control.Json2File("video.json", data);
-            return {
-                code: 0,
-                msg: ""
-            };
-        }
-    }
-    return {
-        code: -1,
-        msg: `id: ${id} not found`
-    };
+	if (isNaN(id))
+		return {
+			code: -1,
+			msg: `id: ${id} not a number`,
+		};
+	let data = await control.File2Json("video.json");
+	for (const key in data.list) {
+		const video = data.list[key];
+		if (id === video.id && globals.isSet("video_" + video.id)) {
+			globals.get("video_" + id).cancel();
+			globals.unset("video_" + id);
+			data.list.splice(key, 1);
+			delete data.list[key];
+			control.Json2File("video.json", data);
+			return {
+				code: 0,
+				msg: "",
+			};
+		}
+	}
+	return {
+		code: -1,
+		msg: `id: ${id} not found`,
+	};
 }
 
 /**
- * 
- * @param {Number} id 
- * @param {String} time 
+ *
+ * @param {Number} id
+ * @param {String} time
  */
 async function update(id, time = "*/5 * * * *") {
-    try {
-        await remove(id);
-        await add(id, time);
-        return {
-            code: 0,
-            msg: ""
-        };
-    } catch (error) {
-        return {
-            code: -1,
-            msg: error
-        };
-    }
+	try {
+		await remove(id);
+		await add(id, time);
+		return {
+			code: 0,
+			msg: "",
+		};
+	} catch (error) {
+		return {
+			code: -1,
+			msg: error,
+		};
+	}
 }
 
 /**
- * 
- * @param {Number} id 
+ *
+ * @param {Number} id
  * @param {Boolean} init
+ * @returns {{
+ * "code":Number,
+ * "msg":String,
+ * "result":{
+ *   "id":Number,
+ *   "aid":Number,
+ *   "title":String,
+ *   "view":Number,
+ *   "coin":Number,
+ *   "danma":Number,
+ *   "favorite":Number,
+ *   "reply":Number,
+ *   "share":Number,
+ *   "heart_like":Number,
+ *   "public_time":Number,
+ *   "update_time":Number
+ * }[]}}
  */
 async function read(id, init = false) {
-    let db = require("../db");
-    try {
-        let result;
-        if (init) {
-            result = (await db.selectAll("video.db", id)).result;
-        } else {
-            result = (await db.select("video.db", id)).result;
-        }
-        //console.log(result);
-        return {
-            code: 0,
-            msg: "",
-            result
-        }
-    } catch (error) {
-        return {
-            code: -1,
-            msg: error
-        }
-    }
+	let db = require("../db");
+	try {
+		let result;
+		if (init) {
+			count = (await db.getCount("video.db", id)).result;
+			result = (await db.select("video.db", id, [], count, 0)).result;
+		} else {
+			result = (await db.select("video.db", id)).result;
+		}
+		//console.log(result);
+		return {
+			code: 0,
+			msg: "",
+			result,
+		};
+	} catch (error) {
+		return {
+			code: -1,
+			msg: error,
+		};
+	}
 }
 
 module.exports = {
-    add,
-    remove,
-    update,
-    read
-}
+	add,
+	remove,
+	update,
+	read,
+};

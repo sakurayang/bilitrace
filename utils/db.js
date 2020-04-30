@@ -41,6 +41,7 @@ function parseObject(obj) {
  * @return {JSON}
  */
 async function select(filename, table, params = [], limit = 1, offset = -1) {
+	table = `${table}`;
 	if (debug)
 		console.log(
 			`[select] [${filename} - ${table}] params: ${JSON.stringify(
@@ -77,6 +78,7 @@ async function select(filename, table, params = [], limit = 1, offset = -1) {
  * @return {JSON}
  */
 async function getCount(filename, table, params = []) {
+	table = `${table}`;
 	const knex = require("knex")(getKnexOptions(filename));
 	try {
 		let count = await (await knex(table).where(params).select("*")).length;
@@ -100,6 +102,7 @@ async function getCount(filename, table, params = []) {
  * @param {JSON[]} values
  */
 async function insert(filename, table, values) {
+	table = `${table}`;
 	if (debug)
 		console.log(
 			`[insert] [${filename} - ${table}] values: ${JSON.stringify(
@@ -130,6 +133,7 @@ async function insert(filename, table, values) {
  */
 // add "_" before function name cause delete is a kept word in js
 function _delete(filename, table, params) {
+	table = `${table}`;
 	if (debug)
 		console.log(
 			`[delete] [${filename} - ${table}] params: ${JSON.stringify(
@@ -160,6 +164,7 @@ function _delete(filename, table, params) {
  * @param {JSON} values new value
  */
 function update(filename, table, params, values) {
+	table = `${table}`;
 	if (debug)
 		logger.info(
 			`[update] [${filename} - ${table}] from: ${JSON.stringify(
