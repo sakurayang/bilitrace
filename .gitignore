@@ -1,6 +1,6 @@
 node_modules
-config.json
-data
+config.js
+old
 *.csv
 rank.js
 .jsbeautifyrc
@@ -8,8 +8,10 @@ rank.js
 .vscode/
 star.js
 *.db
-user.js
-
+gift.json
+video.json
+live.json
+user.json
 # Logs
 logs
 log
