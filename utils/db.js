@@ -2,6 +2,7 @@ const config = require("../config");
 const path = require("path");
 const g_data_path = config.data_path;
 const debug = config.debug;
+const logger = require("./logger").getLogger("database");
 const getKnexOptions = filename => {
 	return {
 		client: "sqlite3",
@@ -9,6 +10,12 @@ const getKnexOptions = filename => {
 		connection: async () => ({
 			filename: path.join(g_data_path, filename),
 		}),
+		log: {
+			warn: message => logger.warn(message),
+			error: message => logger.error(message),
+			deprecate: message => logger.mark(message),
+			debug: message => logger.debug(message),
+		},
 		debug,
 	};
 };
@@ -41,9 +48,8 @@ function parseObject(obj) {
  * @return {JSON}
  */
 async function select(filename, table, params = [], limit = 1, offset = -1) {
-	table = `${table}`;
 	if (debug)
-		console.log(
+		logger.info(
 			`[select] [${filename} - ${table}] params: ${JSON.stringify(
 				params
 			)}, limit: ${limit}, offset: ${offset}`
@@ -62,7 +68,7 @@ async function select(filename, table, params = [], limit = 1, offset = -1) {
 			result,
 		};
 	} catch (error) {
-		console.error(`[select] ${error}`);
+		logger.error(`[select] ${error}`);
 		return {
 			code: -1,
 			msg: error,
@@ -78,7 +84,10 @@ async function select(filename, table, params = [], limit = 1, offset = -1) {
  * @return {JSON}
  */
 async function getCount(filename, table, params = []) {
-	table = `${table}`;
+	if (debug)
+		logger.info(
+			`[count] [${filename} - ${table}] params: ${JSON.stringify(params)}`
+		);
 	const knex = require("knex")(getKnexOptions(filename));
 	try {
 		let count = await (await knex(table).where(params).select("*")).length;
@@ -87,7 +96,7 @@ async function getCount(filename, table, params = []) {
 			result: count,
 		};
 	} catch (error) {
-		console.error(`[getCount] ${error}`);
+		logger.error(`[getCount] ${error}`);
 		return {
 			code: -1,
 			msg: error,
@@ -102,9 +111,8 @@ async function getCount(filename, table, params = []) {
  * @param {JSON[]} values
  */
 async function insert(filename, table, values) {
-	table = `${table}`;
 	if (debug)
-		console.log(
+		logger.log(
 			`[insert] [${filename} - ${table}] values: ${JSON.stringify(
 				values
 			)}`
@@ -117,7 +125,7 @@ async function insert(filename, table, values) {
 			msg: "",
 		};
 	} catch (error) {
-		console.error(`[insert] ${error}`);
+		logger.error(`[insert] ${error}`);
 		return {
 			code: -1,
 			msg: error,
@@ -133,9 +141,8 @@ async function insert(filename, table, values) {
  */
 // add "_" before function name cause delete is a kept word in js
 function _delete(filename, table, params) {
-	table = `${table}`;
 	if (debug)
-		console.log(
+		logger.log(
 			`[delete] [${filename} - ${table}] params: ${JSON.stringify(
 				params
 			)}`
@@ -148,7 +155,7 @@ function _delete(filename, table, params) {
 			msg: "",
 		};
 	} catch (error) {
-		console.error(`[delect] ${error}`);
+		logger.error(`[delect] ${error}`);
 		return {
 			code: -1,
 			msg: error,
@@ -164,7 +171,6 @@ function _delete(filename, table, params) {
  * @param {JSON} values new value
  */
 function update(filename, table, params, values) {
-	table = `${table}`;
 	if (debug)
 		logger.info(
 			`[update] [${filename} - ${table}] from: ${JSON.stringify(
