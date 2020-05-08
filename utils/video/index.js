@@ -24,14 +24,14 @@ async function add(id, time = "*/5 * * * *") {
 	}
 
 	let data = await control.File2Json("video.json");
-	let id_array = data.list.map(el => el.id);
+	let id_array = data.map(el => el.id);
 	if (id_array.indexOf(id) === -1) {
-		data.list.push({
+		data.push({
 			id: Number(id),
 			enable: 1,
 		});
 	}
-	for (const video of data.list) {
+	for (const video of data) {
 		if (globals.isSet("video_" + video.id)) {
 			return {
 				code: -1,
@@ -63,13 +63,13 @@ async function remove(id) {
 			msg: `id: ${id} not a number`,
 		};
 	let data = await control.File2Json("video.json");
-	for (const key in data.list) {
-		const video = data.list[key];
+	for (const key in data) {
+		const video = data[key];
 		if (id === video.id && globals.isSet("video_" + video.id)) {
 			globals.get("video_" + id).cancel();
 			globals.unset("video_" + id);
-			data.list.splice(key, 1);
-			delete data.list[key];
+			data.splice(key, 1);
+			delete data[key];
 			control.Json2File("video.json", data);
 			return {
 				code: 0,
@@ -131,10 +131,11 @@ async function read(id, init = false) {
 	try {
 		let result;
 		if (init) {
-			count = (await db.getCount("video.db", id)).result;
-			result = (await db.select("video.db", id, [], count, 0)).result;
+			count = (await db.getCount("video.db", "video_" + id)).result;
+			result = (await db.select("video.db", "video_" + id, [], count, 0))
+				.result;
 		} else {
-			result = (await db.select("video.db", id)).result;
+			result = (await db.select("video.db", "video_" + id)).result;
 		}
 		//console.log(result);
 		return {
