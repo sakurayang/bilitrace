@@ -4,12 +4,12 @@ const video = require("./utils/video");
 const user = require("./utils/user");
 const control = require("./utils/controller");
 const config = require("./config");
-
+const watch = require("./watch").watch;
 config.web.enable
 	? server.listen(config.web.port, () =>
 			console.log("web start at " + config.web.port)
 	  )
-	: console.log("web not enable");
+	: server.listen();
 
 (async () => {
 	if (config.live_enable) {
@@ -31,6 +31,7 @@ config.web.enable
 		for (const user_id of data) {
 			if (!user_id.enable) continue;
 			user.add(user_id.id, user_id.time);
+			watch(user_id);
 		}
 	}
 })();
