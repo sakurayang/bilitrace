@@ -42,10 +42,6 @@ class Video {
 				prev_job_time = Date.now();
 				let info = await this.getInfo();
 				if (info.code !== 0) return;
-				// 10d * 24hr * 60m * 60s * 1000ms = 864000000
-				if (Date.now() - info.result.public_time * 1000 > 864000000) {
-					this.cancel();
-				}
 				this.write(info.result);
 			}
 		);
@@ -54,24 +50,26 @@ class Video {
 	}
 
 	async init() {
-		//FIXME:db
-		await require("better-sqlite3")(path.join(g_data_path, this.data_path))
-			.prepare(
-				`CREATE TABLE IF NOT EXISTS "${this.id}" ` +
-					"(id           integer  primary key  AUTOINCREMENT not null," +
-					" aid          integer  not null," +
-					" title        text     not null," +
-					" view         integer  not null," +
-					" coin         integer  not null," +
-					" danma        integer  not null," +
-					" favorite     integer  not null," +
-					" reply        integer  not null," +
-					" share        integer  not null," +
-					" heart_like   integer  not null," +
-					" public_time  integer  not null," +
-					" update_time  integer  not null)"
-			)
-			.run();
+		const knex = require("./db").getCore(this.data_path);
+		let tableExist = await knex.schema.hasTable(`video_${this.id}`);
+		if (!tableExist){
+			await knex.schema.createTable(`video_${this.id}`,table=>{
+				table.increments("id").primary();
+				table.integer("aid").notNullable();
+				table.string("title").notNullable();
+				table.integer("view").notNullable();
+				table.integer("coin").notNullable();
+				table.integer("danma").notNullable();
+				table.integer("favorite").notNullable();
+				table.integer("reply").notNullable();
+				table.integer("share").notNullable();
+				table.integer("heart_like").notNullable();
+				table.integer("public_time").notNullable();
+				table.integer("update_time").notNullable();
+				table.index("id");
+				table.index("update_time");
+			})
+		}
 	}
 
 	/**
@@ -103,6 +101,10 @@ class Video {
 				)
 			).data;
 			let stat = raw_data.stat;
+			// 10d * 24hr * 60m * 60s * 1000ms = 864000000
+			if (Date.now() - raw_data.pubdate * 1000 > 864000000) {
+				this.cancel();
+			}
 			return {
 				code: 0,
 				msg: "",
@@ -134,33 +136,7 @@ class Video {
 	 * @returns {Null}
 	 */
 	write(write_data) {
-		//FIXME:db
-		db.insert(this.data_path, this.id, write_data);
-	}
-
-	/**
-	 * @returns {{code:Number,msg:String,result:Array<JSON>}}
-	 */
-	async read(init = false) {
-		try {
-			let data;
-			//FIXME:db
-			if (init) {
-				data = await db.selectAll(this.data_path, this.id);
-			} else {
-				data = await db.select(this.data_path, this.id);
-			}
-			return {
-				code: 0,
-				msg: "",
-				result: data,
-			};
-		} catch (error) {
-			return {
-				code: -1,
-				msg: error,
-			};
-		}
+		db.insert(this.data_path, `video_${this.id}`, write_data);
 	}
 
 	cancel() {
@@ -313,7 +289,6 @@ class Rank {
 	}
 }
 
-//TODO: 分离watcher
 class Room {
 	/**
 	 * @param {Number} id
