@@ -32,18 +32,18 @@ const { Room } = require("../Data");
 */
 async function read(id, init = false) {
 	let data_path = "live.db";
-	let live_time_count = (await db.select(data_path, id)).result.count;
+	let live_time_count = (await db.select(data_path, "room_"+id)).result[0].count;
 
 	let query = {
 		count: live_time_count,
 	};
 	let count = db.getCount(data_path, "room_" + id, query);
-	let gift_count = db.getCount(data_path, "room_" + id + "_gift", query);
+	//let gift_count = db.getCount(data_path, "room_" + id + "_gift", query);
 	let view_data = init
-		? await db.select(data_path, "room_" + id, query, count)
+		? await db.select(data_path, "room_" + id, query, count,0)
 		: await db.select(data_path, "room_" + id, query, 1);
 	let gift_data = init
-		? await db.select(data_path, "room_" + id + "_gift", query, count)
+		? await db.select(data_path, "room_" + id + "_gift", query, count,0)
 		: await db.select(data_path, "room_" + id + "_gift", query, 1);
 	if (view_data.code !== 0 || gift_data.code !== 0)
 		return {
