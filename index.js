@@ -5,11 +5,22 @@ const user = require("./utils/user");
 const control = require("./utils/controller");
 const config = require("./config");
 const watch = require("./watch").watch;
-config.web.enable
-	? server.listen(config.web.port, () =>
-			console.log("web start at " + config.web.port)
-	  )
-	: server.listen();
+const http = require("http");
+const https = require("https");
+const fs = require("fs");
+
+if (config.web.enable) {
+	http.createServer(server.callback()).listen(config.web.port);
+	if(config.web.https.enable){
+		const options = {
+			key: fs.readFileSync(config.web.https.key),
+			cert: fs.readFileSync(config.web.https.cert),
+		};
+		https.createServer(options, server.callback())
+		.listen(Number(config.web.port) + 1);
+	}
+
+} else server.listen();
 
 (async () => {
 	if (config.live_enable) {
