@@ -4,22 +4,21 @@ const video = require("./utils/video");
 const user = require("./utils/user");
 const control = require("./utils/controller");
 const config = require("./config");
-const watch = require("./watch").watch;
 const http = require("http");
 const https = require("https");
 const fs = require("fs");
 
 if (config.web.enable) {
 	http.createServer(server.callback()).listen(config.web.port);
-	if(config.web.https.enable){
+	if (config.web.https.enable) {
 		const options = {
 			key: fs.readFileSync(config.web.https.key),
-			cert: fs.readFileSync(config.web.https.cert),
+			cert: fs.readFileSync(config.web.https.cer)
 		};
-		https.createServer(options, server.callback())
-		.listen(Number(config.web.port) + 1);
+		https
+			.createServer(options, server.callback())
+			.listen(Number(config.web.port) + 1);
 	}
-
 } else server.listen();
 
 (async () => {
@@ -41,8 +40,7 @@ if (config.web.enable) {
 		let data = await control.File2Json("user.json");
 		for (const user_id of data) {
 			if (!user_id.enable) continue;
-			user.add(user_id.id, user_id.time);
-			watch(user_id);
+			user.add(user_id.id, true, user_id.time);
 		}
 	}
 })();

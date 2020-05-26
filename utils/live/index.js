@@ -7,27 +7,27 @@ const { Room } = require("../Data");
  * @param {Number|String} id
  * @param {Boolean} init
  * @returns {{
-    code: 0|1,
-    msg: "ok"|"init"|Error,
-    result: {
-        view:{
-            count: Number,
-            update_time: Number,
-            time: Number,
-            views: Number
-        }[],
-        gift:{
-            id:Number,
-            count: Number,
-            update_time: Number,
-            time: Number,
-            gift_name: String,
-            gift_id: Number,
-            gift_count: Number,
-            silver: Number,
-            gold: Number
-        }[]
-    }
+	code: 0|1,
+	msg: "ok"|"init"|Error,
+	result: {
+		view:{
+			count: Number,
+			update_time: Number,
+			time: Number,
+			views: Number
+		}[],
+		gift:{
+			id:Number,
+			count: Number,
+			update_time: Number,
+			time: Number,
+			gift_name: String,
+			gift_id: Number,
+			gift_count: Number,
+			silver: Number,
+			gold: Number
+		}[]
+	}
 }}
 */
 async function read(id, init = false) {
@@ -74,15 +74,14 @@ async function add(id) {
 	// get video list
 	let data = await control.File2Json("live.json");
 	// loop find id in list
+	if (globals.isSet("live_" + id)) {
+		return {
+			code: -1,
+			msg: `id: ${id} has been add`,
+		};
+	}
 	for (const live of data) {
-		if (globals.isSet("live_" + live.id)) {
-			return {
-				code: -1,
-				msg: `id: ${id} has been add${
-					live.enable ? "" : " but not enable"
-				}`,
-			};
-		}
+		if(live.id ===id) return {code:-1,msg:`${id} not enable`}
 	}
 	// push id in list
 	let id_array = data.map(el => el.id);

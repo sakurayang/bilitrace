@@ -1,6 +1,5 @@
 const request = require("request-promise-native");
 const schedule = require("node-schedule");
-const fs = require("fs");
 const ws = require("ws");
 const parser = require("./live/parser");
 const db = require("./db");
@@ -10,23 +9,6 @@ const logger = require("./logger").getLogger("core");
 const wslogger = require("./logger").getLogger("ws");
 const g_data_path = config.data_path;
 var prev_job_time = Date.now();
-const globals = require("node-global-storage");
-
-/**
- *
- * @param {String} name
- * @param {String} time
- * @param {Function} func
- * @returns {Error|schedule.Job}
- */
-function createScheudle(name, time, func = () => {}) {
-	try {
-		let job = schedule.scheduleJob(String(name), time, func);
-		return job;
-	} catch (error) {
-		throw error;
-	}
-}
 
 class Video {
 	constructor(id, time = "*/5 * * * *") {
@@ -52,8 +34,8 @@ class Video {
 	async init() {
 		const knex = require("./db").getCore(this.data_path);
 		let tableExist = await knex.schema.hasTable(`video_${this.id}`);
-		if (!tableExist){
-			await knex.schema.createTable(`video_${this.id}`,table=>{
+		if (!tableExist) {
+			await knex.schema.createTable(`video_${this.id}`, table => {
 				table.increments("id").primary();
 				table.integer("aid").notNullable();
 				table.string("title").notNullable();
@@ -68,7 +50,7 @@ class Video {
 				table.integer("update_time").notNullable();
 				table.index("id");
 				table.index("update_time");
-			})
+			});
 		}
 	}
 
@@ -80,7 +62,7 @@ class Video {
             aid: Number,
             title: String,
             view: Number,
-            coin: Numbern,
+            coin: Number,
             danma: Number,
             favorite: Number,
             reply: Number,
@@ -105,7 +87,7 @@ class Video {
 			if (Date.now() - raw_data.pubdate * 1000 > 864000000) {
 				this.cancel();
 			}
-			return {
+			let result = {
 				code: 0,
 				msg: "",
 				result: {
@@ -119,14 +101,16 @@ class Video {
 					share: stat.share,
 					heart_like: stat.like,
 					public_time: raw_data.pubdate,
-					update_time: Date.now(),
-				},
+					update_time: Date.now()
+				}
 			};
+			if (debug) logger.info(JSON.stringify(result));
+			return result;
 		} catch (error) {
 			logger.info(error);
 			return {
 				code: -1,
-				msg: error,
+				msg: error
 			};
 		}
 	}
@@ -141,7 +125,6 @@ class Video {
 
 	cancel() {
 		if (this.job instanceof schedule.Job) this.job.cancel();
-		globals.unset("video_" + this.id);
 	}
 }
 
@@ -154,7 +137,7 @@ class Rank {
 		this.data_path = "rank.db";
 		this.interval = interval;
 		(async () => await this.init())();
-		this.job = createScheudle(
+		this.job = createSchedule(
 			String(this.id),
 			this.schedule_time,
 			async () => {
@@ -233,19 +216,19 @@ class Rank {
 					author_mid: video.mid,
 					author_name: `"${video.author}"`,
 					update_time: Date.now(),
-					public_time: video.create,
+					public_time: video.create
 				});
 			}
 			return {
 				code: 0,
 				msg: "",
-				result: db_data,
+				result: db_data
 			};
 		} catch (error) {
 			logger.info(error);
 			return {
 				code: -1,
-				msg: error,
+				msg: error
 			};
 		}
 	}
@@ -274,12 +257,12 @@ class Rank {
 			return {
 				code: 0,
 				msg: "",
-				result: data,
+				result: data
 			};
 		} catch (error) {
 			return {
 				code: -1,
-				msg: error,
+				msg: error
 			};
 		}
 	}
@@ -363,7 +346,7 @@ class Room {
                     name: String
                 }
             },
-            auchor: {
+            author: {
                 anchor_name: String,
                 level: Number
             }
@@ -377,7 +360,7 @@ class Room {
 		if (info.code != 0)
 			return {
 				code: 1,
-				error: info.message,
+				error: info.message
 			};
 		let data = info.data;
 		let room_info = data.room_info;
@@ -390,12 +373,12 @@ class Room {
 			name: room_info.area_name,
 			parent: {
 				id: room_info.parent_area_id,
-				name: room_info.parent_area_name,
-			},
+				name: room_info.parent_area_name
+			}
 		};
 
 		let anchor_info = data.anchor_info;
-		let anchor_name = anchor_info.base_info.uname;
+		let author_name = anchor_info.base_info.uname;
 		let level = anchor_info.live_info.level;
 
 		let rankdb_info = data.rankdb_info;
@@ -410,13 +393,13 @@ class Room {
 				start_time,
 				rank,
 				area_rank,
-				live_status,
+				live_status
 			},
 			area,
-			anchor: {
-				anchor_name,
-				level,
-			},
+			author: {
+				author_name,
+				level
+			}
 		};
 		return output;
 	}
@@ -429,15 +412,15 @@ class Room {
 		if (list.code != 0)
 			return {
 				ok: false,
-				error: list.message,
+				error: list.message
 			};
 		return {
 			list: list.data.list,
-			sliver_list: list.data.sliver_list,
+			sliver_list: list.data.sliver_list
 		};
 	}
 
-	async getgiftConf() {
+	async getGiftConf() {
 		let conf = await request.get(
 			`https://api.live.bilibili.com/gift/v4/Live/giftConfig?roomid=${this.id}`
 		);
@@ -470,12 +453,12 @@ class Room {
 		if (info.code != 0 && info.msg != "ok")
 			return {
 				ok: false,
-				error: info.message,
+				error: info.message
 			};
 		return {
 			port: info.data.port,
 			host: info.data.host,
-			token: info.data.token,
+			token: info.data.token
 		};
 	}
 
@@ -484,24 +467,24 @@ class Room {
 	 */
 	getPacket(type) {
 		/*
-		 * 0000 00[body length + head length(16)] 00[head lenght(16)] 00[protocol type] 00[operation type] 01
+		 * 0000 00[body length + head length(16)] 00[head length(16)] 00[protocol type] 00[operation type] 01
 		 *
 		 * protocol type refer: [value/body format/content]
 		 * 00 JSON   message
 		 * 01 Int32  body is views
-		 * 02 Buffer compossed buffer, after decompossed need to parse again as a new packet
+		 * 02 Buffer composed buffer, after decompose need to parse again as a new packet
 		 *
 		 * operation type refer: [value/sender/body format/type/content]
 		 * 02 client null  heart_beat              once per 30s
 		 * 03 server Int32 heart_beat_response     body is views
-		 * 05 server JSON  boardcasting            danmu and boardcast
-		 * 07 client JSON  enter (first_handshark) first pack when connect, need id
+		 * 05 server JSON  broadcasting            danmu and broadcast
+		 * 07 client JSON  enter (first_handshake) first pack when connect, need id
 		 * 08 server Int32 enter_response          null
 		 */
 		type = type.toLowerCase();
 		let head, body;
 		switch (type) {
-			case "hello":
+			case "hello": {
 				let data = JSON.stringify({
 					uid: this.getRandUid(),
 					roomid: this.id,
@@ -509,13 +492,13 @@ class Room {
 					platform: "web",
 					clientver: "1.9.3",
 					type: 2,
-					key: this.danmu.token,
+					key: this.danmu.token
 				});
 				//logger.info(data);
 				body = Buffer.from(data);
 				let length = body.length + 16;
-				// eslint-disable-next-line prettier.*
 				head = Buffer.from([
+					// eslint-disable-next-line prettier/prettier
 					0,
 					0,
 					0,
@@ -531,14 +514,15 @@ class Room {
 					0,
 					0,
 					0,
-					1,
+					1
 				]);
 				//logger.info(Buffer.concat([head, body]))
 				return Buffer.concat([head, body]);
 				break;
-			case "heart":
-				// eslint-disable-next-line prettier.*
+			}
+			case "heart": {
 				head = Buffer.from([
+					// eslint-disable-next-line prettier/prettier
 					0,
 					0,
 					0,
@@ -554,14 +538,16 @@ class Room {
 					0,
 					0,
 					0,
-					1,
+					1
 				]);
 				body = Buffer.from("[object Object]");
 				return Buffer.concat([head, body]);
 				break;
-			default:
+			}
+			default: {
 				return new Error("error type");
 				break;
+			}
 		}
 	}
 	getRandUid = (bit = 15) =>
@@ -580,7 +566,7 @@ class Room {
 					count: this.live_counter,
 					time: this.room_info.room.start_time,
 					update_time: msg.data.time,
-					views: msg.data.view,
+					views: msg.data.view
 				});
 			} else if (msg.type == "gift") {
 				db.insert(this.data_path, `room_${this.id}_gift`, {
@@ -594,8 +580,7 @@ class Room {
 						msg.data.coin_type == "silver"
 							? msg.data.total_coin
 							: 0,
-					gold:
-						msg.data.coin_type == "gold" ? msg.data.total_coin : 0,
+					gold: msg.data.coin_type == "gold" ? msg.data.total_coin : 0
 				});
 			} else if (msg.type == "guard_buy") {
 				db.insert(this.data_path, `room_${this.id}_gift`, {
@@ -606,7 +591,7 @@ class Room {
 					gift_id: 0,
 					gift_count: msg.data.num,
 					silver: 0,
-					gold: msg.data.total_coin,
+					gold: msg.data.total_coin
 				});
 			} else if (msg.type == "super_chat") {
 				db.insert(this.data_path, `room_${this.id}_gift`, {
@@ -619,7 +604,7 @@ class Room {
 						: msg.data.gift.id,
 					gift_count: msg.data.gift.num,
 					silver: 0,
-					gold: msg.data.price * msg.data.rate,
+					gold: msg.data.price * msg.data.rate
 				});
 			}
 		}
@@ -694,7 +679,7 @@ class User {
 	/**
 	 * @param {Number} id
 	 */
-	constructor(id, time = "*/10 * * * *") {
+	constructor(id, trace_video = false, time = "*/59 * * * *") {
 		this.id = Number(id);
 		this.api = {
 			base: "https://api.bilibili.com/x/relation/stat?vmid=" + this.id,
@@ -702,7 +687,11 @@ class User {
 			video:
 				"https://api.bilibili.com/x/space/arc/search?pn=1&ps=1&order=pubdate&mid=" +
 				this.id,
+			post:
+				"https://api.bilibili.com/x/space/article?ps=1&pn=1&mid=" +
+				this.id
 		};
+		this.trace_video = trace_video;
 		this.schedule_time = time;
 		this.data_path = "user.db";
 		(async () => await this.init())();
@@ -713,91 +702,99 @@ class User {
 				while (Date.now() - prev_job_time < 100) {}
 				prev_job_time = Date.now();
 				let info = await this.getInfo();
-				if (info.code !== 0) return;
-				this.write(item);
+				if (info.code !== 0) {
+					logger.error(JSON.stringify(info));
+					return;
+				}
+				this.write(info.result);
+				if (trace_video)
+					require("./video").add(info.result.latest_video_aid);
+				return;
 			}
 		);
 		return this;
 	}
 	async init() {
-		await require("better-sqlite3")(path.join(g_data_path, this.data_path))
-			.prepare(
-				`CREATE TABLE IF NOT EXISTS "${this.id}" ` +
-					"(id           integer  primary key  AUTOINCREMENT not null," +
-					" aid          integer  not null," +
-					" title        text     not null," +
-					" public_time  integer  not null," +
-					" update_time  integer  not null)"
-			)
-			.run();
+		const knex = require("./db").getCore(this.data_path);
+		let tableExist = await knex.schema.hasTable(`user_${this.id}`);
+		if (!tableExist) {
+			await knex.schema.createTable(`user_${this.id}`, table => {
+				table.bigInteger("fan").notNullable();
+				table.bigInteger("video").notNullable();
+				table.bigInteger("post").notNullable();
+				table.bigInteger("view_video").notNullable();
+				table.bigInteger("view_post").notNullable();
+				table.bigInteger("like").notNullable();
+				table.timestamp("update_time").notNullable();
+				table.index("update_time");
+			});
+		}
 	}
 
 	/**
-     * @param {"video"|"base"|"up"}
-     * @returns {{
-        code:Number,
-        msg:String,
-        result:JSON
-    }}
+     * @return {{
+			code: Number,
+			msg: String,
+			result: {
+				latest_video_aid: Number,
+				fan: Number,
+				video: Number,
+				post: Number,
+				view_video: Number,
+				view_post: Number,
+				like: Number,
+				update_time: Number
+		}}
      */
-	async getInfo(type = "video") {
+	async getInfo() {
 		try {
-			let raw_data = JSON.parse(await request.get(this.api[type])).data;
+			let base_info = await request.get(this.api.base);
+			let up_info = await request.get(this.api.up);
+			let video_info = await request.get(this.api.video);
+			let post_info = await request.get(this.api.post);
+			base_info = JSON.parse(base_info).data;
+			up_info = JSON.parse(up_info).data;
+			video_info = JSON.parse(video_info).data;
+			post_info = JSON.parse(post_info).data;
+			if (debug)
+				logger.info(JSON.stringify({ base_info, up_info, video_info }));
 			return {
 				code: 0,
 				msg: "",
 				result: {
-					aid: raw_data.list.vlist[0].aid,
-					title: `"${raw_data.list.vlist[0].title}"`,
-					public_time: raw_data.list.vlist[0].created,
-					update_time: Date.now(),
-				},
+					latest_video_aid: video_info.list.vlist.aid,
+					fan: base_info.follower,
+					video: Object.keys(video_info.page).includes("count")
+						? video_info.page.count
+						: 0,
+					post: Object.keys(post_info.page).includes("count")
+						? post_info.page.count
+						: 0,
+					view_video: up_info.archive.view,
+					view_post: up_info.article.view,
+					like: up_info.likes,
+					update_time: Date.now()
+				}
 			};
 		} catch (error) {
 			logger.info(error);
 			return {
 				code: -1,
-				msg: error,
+				msg: error
 			};
 		}
 	}
 
 	/**
-	 * @param {JSON} write_data
+	 * @param {JSON} data
 	 * @returns {Null}
 	 */
-	async write(write_data) {
-		//FIXME:db
-		let data = await db.select(this.data_path, this.id);
-		if (data.id === write_data.aid) return;
-		require("./video").add(this.id);
-		db.insert(this.data_path, this.id, write_data);
+	async write(data) {
+		let write_data;
+		Object.assign(write_data, data);
+		delete write_data.latest_video_aid;
+		db.insert(this.data_path, "user_" + this.id, write_data);
 		return;
-	}
-
-	/**
-	 * @returns {{code:Number,msg:String,result:Array<JSON>}}
-	 */
-	async read(init = false) {
-		try {
-			let data;
-			//FIXME:db
-			if (init) {
-				data = await db.selectAll(this.data_path, this.id);
-			} else {
-				data = await db.select(this.data_path, this.id);
-			}
-			return {
-				code: 0,
-				msg: "",
-				result: data,
-			};
-		} catch (error) {
-			return {
-				code: -1,
-				msg: error,
-			};
-		}
 	}
 
 	cancel() {
@@ -809,5 +806,5 @@ module.exports = {
 	Video,
 	Rank,
 	Room,
-	User,
+	User
 };

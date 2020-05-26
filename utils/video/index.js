@@ -11,7 +11,7 @@ async function add(id, time = "*/5 * * * *") {
 	if (isNaN(id)) {
 		return {
 			code: -1,
-			msg: `id: ${id} not a number`,
+			msg: `id: ${id} not a number`
 		};
 	} else if (
 		typeof time !== "string" ||
@@ -19,7 +19,7 @@ async function add(id, time = "*/5 * * * *") {
 	) {
 		return {
 			code: -1,
-			msg: `time: ${time} is not suit format`,
+			msg: `time: ${time} is not suit format`
 		};
 	}
 
@@ -28,7 +28,7 @@ async function add(id, time = "*/5 * * * *") {
 	if (id_array.indexOf(id) === -1) {
 		data.push({
 			id: Number(id),
-			enable: 1,
+			enable: 1
 		});
 	}
 	for (const video of data) {
@@ -37,7 +37,7 @@ async function add(id, time = "*/5 * * * *") {
 				code: -1,
 				msg: `id: ${id} has been add${
 					video.enable ? "" : " but not enable"
-				}`,
+				}`
 			};
 		}
 	}
@@ -48,7 +48,7 @@ async function add(id, time = "*/5 * * * *") {
 	globals.set("video_" + id, video);
 	return {
 		code: 0,
-		msg: "",
+		msg: ""
 	};
 }
 
@@ -60,26 +60,28 @@ async function remove(id) {
 	if (isNaN(id))
 		return {
 			code: -1,
-			msg: `id: ${id} not a number`,
+			msg: `id: ${id} not a number`
 		};
 	let data = await control.File2Json("video.json");
 	for (const key in data) {
 		const video = data[key];
-		if (id === video.id && globals.isSet("video_" + video.id)) {
-			globals.get("video_" + id).cancel();
-			globals.unset("video_" + id);
+		if (id === video.id) {
+			if (globals.isSet("video_" + video.id)) {
+				globals.get("video_" + id).cancel();
+				globals.unset("video_" + id);
+			}
 			data.splice(key, 1);
 			delete data[key];
 			control.Json2File("video.json", data);
 			return {
 				code: 0,
-				msg: "",
+				msg: ""
 			};
 		}
 	}
 	return {
 		code: -1,
-		msg: `id: ${id} not found`,
+		msg: `id: ${id} not found`
 	};
 }
 
@@ -94,12 +96,12 @@ async function update(id, time = "*/5 * * * *") {
 		await add(id, time);
 		return {
 			code: 0,
-			msg: "",
+			msg: ""
 		};
 	} catch (error) {
 		return {
 			code: -1,
-			msg: error,
+			msg: error
 		};
 	}
 }
@@ -141,12 +143,12 @@ async function read(id, init = false) {
 		return {
 			code: 0,
 			msg: "",
-			result,
+			result
 		};
 	} catch (error) {
 		return {
 			code: -1,
-			msg: error,
+			msg: error
 		};
 	}
 }
@@ -155,5 +157,5 @@ module.exports = {
 	add,
 	remove,
 	update,
-	read,
+	read
 };

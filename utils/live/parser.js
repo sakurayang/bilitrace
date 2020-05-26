@@ -78,7 +78,7 @@ function parseBody(operation, protocol, body) {
 				code: -1,
 				type: "heart",
 				msg: "a heart beat packet (It should not receive from server)",
-				data: null,
+				data: null
 			};
 			break;
 		}
@@ -90,8 +90,8 @@ function parseBody(operation, protocol, body) {
 				msg: null,
 				data: {
 					time: Date.now(),
-					view: body.readInt32BE(0),
-				},
+					view: body.readInt32BE(0)
+				}
 			};
 			break;
 		}
@@ -104,7 +104,7 @@ function parseBody(operation, protocol, body) {
 					code: -2,
 					type: "notify",
 					msg: "parsed error",
-					data: body,
+					data: body
 				};
 			}
 			break;
@@ -117,16 +117,16 @@ function parseBody(operation, protocol, body) {
 				code: 0,
 				type: "answer",
 				msg: code == 1 ? "" : `enter room error: [code:${code}]`,
-				data: body,
+				data: body
 			};
 			break;
 		}
 		default: {
 			msg = {
 				code: -10086,
-				type: "unknow",
-				msg: "unknow",
-				data: body,
+				type: "unknown",
+				msg: "unknown",
+				data: body
 			};
 			//unknown data
 			break;
@@ -157,9 +157,9 @@ function parseNotify(body) {
 	 * DANMU_MSG
 	 * |  type     | index  |   desc  |   example
 	 * | Message   |  [1]   | String  | hello
-	 * | User info |  [2]   | [uid, username, isAdmin, isVip, unknow, unknow, unknow] | [24247316, "Gerardyang", 0, 0, 0, 10000, 1, ""]
-	 * | Suffix    |  [3]   | [level, text, owner, owner_room_id, unknow, unknow, unknow] | [1, "奶猫粮", "夜霧Yogiri", 21618129, 6406234, "", 0]
-	 * | User Level|  [4]   | [level, unknow, next_level, rank] | [35, 0, 10512625, ">50000"]
+	 * | User info |  [2]   | [uid, username, isAdmin, isVip, unknown, unknown, unknown] | [24247316, "Gerardyang", 0, 0, 0, 10000, 1, ""]
+	 * | Suffix    |  [3]   | [level, text, owner, owner_room_id, unknown, unknown, unknown] | [1, "奶猫粮", "夜霧Yogiri", 21618129, 6406234, "", 0]
+	 * | User Level|  [4]   | [level, unknown, next_level, rank] | [35, 0, 10512625, ">50000"]
 	 * ===================================================================
 	 * GUARD_BUY
 	 * {
@@ -231,14 +231,14 @@ function parseNotify(body) {
 					id: Number(body.info[2][0]),
 					name: String(body.info[2][1]),
 					isAdmin: Boolean(body.info[2][2]),
-					isVip: Boolean(body.info[2][3]),
+					isVip: Boolean(body.info[2][3])
 				},
 				suffix: {
 					level: body.info[3].length ? String(body.info[3][0]) : 0,
 					name: body.info[3].length ? String(body.info[3][1]) : "",
-					owner: body.info[3].length ? String(body.info[3][2]) : "",
-				},
-			},
+					owner: body.info[3].length ? String(body.info[3][2]) : ""
+				}
+			}
 		};
 	} else if (cmd.startsWith("SEND_GIFT")) {
 		let data = body.data;
@@ -254,8 +254,8 @@ function parseNotify(body) {
 				giftType: Number(data.giftType),
 				price: Number(data.price),
 				coin_type: String(data.coin_type),
-				total_coin: Number(data.total_coin),
-			},
+				total_coin: Number(data.total_coin)
+			}
 		};
 	} else if (cmd.startsWith("GUARD_BUY")) {
 		let data = body.data;
@@ -276,7 +276,7 @@ function parseNotify(body) {
 						: "",
 				user: {
 					uid: Number(data.uid),
-					uname: String(data.username),
+					uname: String(data.username)
 				},
 				coin_type: "gold",
 				total_coin:
@@ -287,8 +287,8 @@ function parseNotify(body) {
 						: data.guard_level == 1
 						? 20000000
 						: 0,
-				num: data.num,
-			},
+				num: data.num
+			}
 		};
 	} else if (cmd.startsWith("SUPER_CHAT_MESSAGE")) {
 		let data = body.data;
@@ -309,29 +309,29 @@ function parseNotify(body) {
 					is_vip: Boolean(data.user_info.is_vip),
 					is_svip: Boolean(data.user_info.is_svip),
 					is_main_vip: Boolean(data.user_info.is_main_vip),
-					manager: Number(data.user_info.manager),
+					manager: Number(data.user_info.manager)
 				},
 				time: Number(data.time),
 				start_time: Number(data.start_time) * 1000,
 				end_time: Number(data.end_time) * 1000,
 				gift: {
 					num: Number(data.gift.num),
-					id: Number(data.gift.gitf_id),
-					name: String(data.gift.gift_name),
-				},
-			},
+					id: Number(data.gift.gift_id),
+					name: String(data.gift.gift_name)
+				}
+			}
 		};
 	} else {
 		r_data = {
 			code: 0,
 			msg: "",
 			type: "other",
-			data: body,
+			data: body
 		};
 	}
 	return r_data;
 }
 
 module.exports = {
-	packet: parsePacket,
+	packet: parsePacket
 };

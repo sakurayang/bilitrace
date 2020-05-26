@@ -8,15 +8,15 @@ const getKnexOptions = filename => {
 		client: "sqlite3",
 		useNullAsDefault: true,
 		connection: async () => ({
-			filename: path.join(g_data_path, filename),
+			filename: path.join(g_data_path, filename)
 		}),
 		log: {
 			warn: message => logger.warn(message),
 			error: message => logger.error(message),
 			deprecate: message => logger.mark(message),
-			debug: message => logger.debug(message),
+			debug: message => logger.debug(message)
 		},
-		debug,
+		debug
 	};
 };
 
@@ -36,7 +36,7 @@ function parseObject(obj) {
 		values,
 		length: keys.length,
 		transfrom,
-		sql_string: transfrom.toString().replace(",", " and "),
+		sql_string: transfrom.toString().replace(",", " and ")
 	};
 }
 
@@ -65,13 +65,13 @@ async function select(filename, table, params = [], limit = 1, offset = -1) {
 		return {
 			code: 0,
 			msg: "",
-			result,
+			result
 		};
 	} catch (error) {
 		logger.error(`[select] ${error}`);
 		return {
 			code: -1,
-			msg: error,
+			msg: error
 		};
 	}
 }
@@ -93,13 +93,13 @@ async function getCount(filename, table, params = []) {
 		let count = await (await knex(table).where(params).select("*")).length;
 		return {
 			code: 0,
-			result: count,
+			result: count
 		};
 	} catch (error) {
 		logger.error(`[getCount] ${error}`);
 		return {
 			code: -1,
-			msg: error,
+			msg: error
 		};
 	}
 }
@@ -122,13 +122,13 @@ async function insert(filename, table, values) {
 		await knex(table).insert(values);
 		return {
 			code: 0,
-			msg: "",
+			msg: ""
 		};
 	} catch (error) {
 		logger.error(`[insert] ${error}`);
 		return {
 			code: -1,
-			msg: error,
+			msg: error
 		};
 	}
 }
@@ -152,13 +152,13 @@ function _delete(filename, table, params) {
 		knex(table).where(parseObject(params).sql_string).delete();
 		return {
 			code: 0,
-			msg: "",
+			msg: ""
 		};
 	} catch (error) {
-		logger.error(`[delect] ${error}`);
+		logger.error(`[delete] ${error}`);
 		return {
 			code: -1,
-			msg: error,
+			msg: error
 		};
 	}
 }
@@ -182,13 +182,13 @@ function update(filename, table, params, values) {
 		knex(table).where(parseObject(params).sql_string).update(values);
 		return {
 			code: 0,
-			msg: "",
+			msg: ""
 		};
 	} catch (error) {
 		logger.error(`[update] ${error}`);
 		return {
 			code: -1,
-			msg: error,
+			msg: error
 		};
 	}
 }
@@ -199,5 +199,5 @@ module.exports = {
 	insert,
 	delete: _delete,
 	update,
-	getCount,
+	getCount
 };
