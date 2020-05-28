@@ -32,31 +32,32 @@ const { Room } = require("../Data");
 */
 async function read(id, init = false) {
 	let data_path = "live.db";
-	let live_time_count = (await db.select(data_path, "room_"+id)).result[0].count;
+	let live_time_count = (await db.select(data_path, "room_" + id)).result[0]
+		.count;
 
 	let query = {
-		count: live_time_count,
+		count: live_time_count
 	};
 	let count = db.getCount(data_path, "room_" + id, query);
 	//let gift_count = db.getCount(data_path, "room_" + id + "_gift", query);
 	let view_data = init
-		? await db.select(data_path, "room_" + id, query, count,0)
+		? await db.select(data_path, "room_" + id, query, count, 0)
 		: await db.select(data_path, "room_" + id, query, 1);
 	let gift_data = init
-		? await db.select(data_path, "room_" + id + "_gift", query, count,0)
+		? await db.select(data_path, "room_" + id + "_gift", query, count, 0)
 		: await db.select(data_path, "room_" + id + "_gift", query, 1);
 	if (view_data.code !== 0 || gift_data.code !== 0)
 		return {
 			code: -1,
-			msg: view_data.msg + "&&&&&&&" + gift_data.msg,
+			msg: view_data.msg + "&&&&&&&" + gift_data.msg
 		};
 	return {
 		code: 0,
 		msg: init ? "init" : "ok",
 		result: {
 			view: view_data.result,
-			gift: gift_data.result,
-		},
+			gift: gift_data.result
+		}
 	};
 }
 
@@ -68,27 +69,28 @@ async function add(id) {
 	if (isNaN(id)) {
 		return {
 			code: -1,
-			msg: `id: ${id} not a number`,
+			msg: `id: ${id} not a number`
 		};
 	}
 	// get video list
 	let data = await control.File2Json("live.json");
 	// loop find id in list
 	if (globals.isSet("live_" + id)) {
+		for (const live of data) {
+			if (live.id === id) return { code: -1, msg: `${id} not enable` };
+		}
 		return {
 			code: -1,
-			msg: `id: ${id} has been add`,
+			msg: `id: ${id} has been add`
 		};
 	}
-	for (const live of data) {
-		if(live.id ===id) return {code:-1,msg:`${id} not enable`}
-	}
+
 	// push id in list
 	let id_array = data.map(el => el.id);
 	if (id_array.indexOf(id) === -1) {
 		data.push({
 			id: Number(id),
-			enable: 1,
+			enable: 1
 		});
 	}
 	// then write to file
@@ -98,7 +100,7 @@ async function add(id) {
 	globals.set("live_" + id, room);
 	return {
 		code: 0,
-		msg: "",
+		msg: ""
 	};
 }
 
@@ -110,7 +112,7 @@ async function cancel(id) {
 	if (isNaN(id))
 		return {
 			code: -1,
-			msg: `id: ${id} not a number`,
+			msg: `id: ${id} not a number`
 		};
 	// get video list
 	let data = await control.File2Json("live.json");
@@ -129,12 +131,12 @@ async function cancel(id) {
 	}
 	return {
 		code: -1,
-		msg: `id: ${id} not found`,
+		msg: `id: ${id} not found`
 	};
 }
 
 module.exports = {
 	read,
 	add,
-	cancel,
+	cancel
 };

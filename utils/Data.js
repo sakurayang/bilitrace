@@ -10,6 +10,8 @@ const wslogger = require("./logger").getLogger("ws");
 const g_data_path = config.data_path;
 var prev_job_time = Date.now();
 
+const debug = config.debug;
+
 class Video {
 	constructor(id, time = "*/5 * * * *") {
 		this.id = Number(id);
@@ -757,7 +759,14 @@ class User {
 			video_info = JSON.parse(video_info).data;
 			post_info = JSON.parse(post_info).data;
 			if (debug)
-				logger.info(JSON.stringify({ base_info, up_info, video_info }));
+				logger.info(
+					JSON.stringify({
+						base_info,
+						up_info,
+						video_info,
+						post_info
+					})
+				);
 			return {
 				code: 0,
 				msg: "",
@@ -767,8 +776,8 @@ class User {
 					video: Object.keys(video_info.page).includes("count")
 						? video_info.page.count
 						: 0,
-					post: Object.keys(post_info.page).includes("count")
-						? post_info.page.count
+					post: Object.keys(post_info).includes("count")
+						? post_info.count
 						: 0,
 					view_video: up_info.archive.view,
 					view_post: up_info.article.view,
@@ -790,7 +799,7 @@ class User {
 	 * @returns {Null}
 	 */
 	async write(data) {
-		let write_data;
+		let write_data = {};
 		Object.assign(write_data, data);
 		delete write_data.latest_video_aid;
 		db.insert(this.data_path, "user_" + this.id, write_data);

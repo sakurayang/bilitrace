@@ -31,15 +31,14 @@ async function add(id, time = "*/5 * * * *") {
 			enable: 1
 		});
 	}
-	for (const video of data) {
-		if (globals.isSet("video_" + video.id)) {
-			return {
-				code: -1,
-				msg: `id: ${id} has been add${
-					video.enable ? "" : " but not enable"
-				}`
-			};
+	if (globals.isSet("video_" + id)) {
+		for (const video of data) {
+			if (video.id === id) return { code: -1, msg: `${id} not enable` };
 		}
+		return {
+			code: -1,
+			msg: `id: ${id} has been add`
+		};
 	}
 	// push id in list
 

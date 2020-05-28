@@ -13,7 +13,7 @@ if (config.web.enable) {
 	if (config.web.https.enable) {
 		const options = {
 			key: fs.readFileSync(config.web.https.key),
-			cert: fs.readFileSync(config.web.https.cer)
+			cert: fs.readFileSync(config.web.https.cert)
 		};
 		https
 			.createServer(options, server.callback())

@@ -8,7 +8,7 @@ const { User } = require("../Data");
  * @param {String} time cron job format
  * @returns {{code:Number,msg:String}}
  */
-async function add(id, time = "*/5 * * * *") {
+async function add(id, watch_video = false, time = "*/59 * * * *") {
 	if (isNaN(id)) {
 		return {
 			code: -1,
@@ -25,16 +25,16 @@ async function add(id, time = "*/5 * * * *") {
 	}
 
 	let data = await control.File2Json("user.json");
-	for (const user of data) {
-		if (globals.isSet("user_" + user.id)) {
-			return {
-				code: -1,
-				msg: `id: ${id} has been add${
-					user.enable ? "" : " but not enable"
-				}`
-			};
+	if (globals.isSet("user_" + id)) {
+		for (const user of data) {
+			if (user.id === id) return { code: -1, msg: `${id} not enable` };
 		}
+		return {
+			code: -1,
+			msg: `id: ${id} has been add`
+		};
 	}
+
 	// push id in list
 	let id_array = data.map(el => el.id);
 	if (id_array.indexOf(id) === -1) {
@@ -44,7 +44,7 @@ async function add(id, time = "*/5 * * * *") {
 		});
 	}
 	control.Json2File("user.json", data);
-	let user = new User(id, time);
+	let user = new User(id, watch_video, time);
 	globals.set("user_" + id, user);
 	return {
 		code: 0,
@@ -130,6 +130,5 @@ async function read(id, init = false) {
 module.exports = {
 	add,
 	remove,
-	update,
 	read
 };
