@@ -499,50 +499,27 @@ class Room {
 				//logger.info(data);
 				body = Buffer.from(data);
 				let length = body.length + 16;
-				head = Buffer.from([
-					// eslint-disable-next-line prettier/prettier
-					0,
-					0,
-					0,
-					length,
-					0,
-					16,
-					0,
-					1,
-					0,
-					0,
-					0,
-					7,
-					0,
-					0,
-					0,
-					1
-				]);
+				head = Buffer.alloc(16);
+				head.writeInt32BE(length, 0);
+				head.writeInt16BE(16, 4);
+				head.writeInt16BE(1, 6);
+				head.writeInt32BE(7, 8);
+				//head.writeInt32BE(1, 12);
+				head.writeInt16BE(1, 12);
 				//logger.info(Buffer.concat([head, body]))
 				return Buffer.concat([head, body]);
 				break;
 			}
 			case "heart": {
-				head = Buffer.from([
-					// eslint-disable-next-line prettier/prettier
-					0,
-					0,
-					0,
-					31,
-					0,
-					16,
-					0,
-					1,
-					0,
-					0,
-					0,
-					2,
-					0,
-					0,
-					0,
-					1
-				]);
 				body = Buffer.from("[object Object]");
+				let length = body.length + 16;
+				head = Buffer.alloc(16);
+				head.writeInt32BE(length, 0);
+				head.writeInt16BE(16, 4);
+				head.writeInt16BE(1, 6);
+				head.writeInt32BE(2, 8);
+				//head.writeInt32BE(1, 12);
+				head.writeInt16BE(1, 12);
 				return Buffer.concat([head, body]);
 				break;
 			}
@@ -709,9 +686,11 @@ class User {
 					return;
 				}
 				this.write(info.result);
-				if (trace_video)
-					require("./video").add(info.result.latest_video_aid);
-				return;
+				if (this.trace_video) {
+					let video = require("./video");
+					let res = await video.add(info.result.latest_video_aid);
+					logger.info(res);
+				}
 			}
 		);
 		return this;

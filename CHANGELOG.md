@@ -1,6 +1,9 @@
 # Changelog
 
 ## [非正式]
+- v3.0.18
+  - fix bug: 直播人气永远是1
+  - fix bug\[??\]: 视频自动追踪 
 - v3.0.12 
   - fix bug: user.js - update not defined
   - fix bug: 不自动添加json文件内所指定的内容
